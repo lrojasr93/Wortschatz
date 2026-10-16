@@ -3,11 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Wortschatz</title>
+<title>Wortschatz · Tu alemán para trabajar en Alemania</title>
 <meta name="description" content="Aprende el alemán de tu profesión, desde el español. Únete a la lista de espera.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<link rel="canonical" href="https://rumboalemania.com/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0B5F73">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="es_ES">
+<meta property="og:site_name" content="Wortschatz">
+<meta property="og:url" content="https://rumboalemania.com/">
+<meta property="og:title" content="Tu alemán para trabajar en Alemania">
+<meta property="og:description" content="Aprende el vocabulario de tu profesión, desde el español. Únete a la lista de espera y prueba la app gratis.">
+<meta property="og:image" content="https://rumboalemania.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Wortschatz: tarjetas de vocabulario alemán con der, die y das">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Tu alemán para trabajar en Alemania">
+<meta name="twitter:description" content="Aprende el vocabulario de tu profesión, desde el español. Únete a la lista de espera.">
+<meta name="twitter:image" content="https://rumboalemania.com/og.png">
+<link rel="stylesheet" href="fonts.css">
 <style>
 /* Layout: split hero (promise left, stacked word cards right), then a single readable column of sections, form as the closing block. */
 :root{
@@ -49,6 +65,11 @@ h1,h2,h3{font-family:var(--display);line-height:1.08;text-wrap:balance;margin:0}
 .cta:hover{filter:brightness(1.08)}
 .cta:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
 .fine{font-size:.92rem;color:var(--muted);margin-top:14px}
+.ghost{display:inline-flex;align-items:center;margin-left:14px;font-weight:700;font-size:1.05rem;padding:13px 20px;border:2px solid var(--accent);border-radius:10px;text-decoration:none;color:var(--accent)}
+.ghost:hover{background:var(--surface)}
+.ghost:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+@media (max-width:520px){.ghost{margin:12px 0 0}}
+footer a{color:inherit}
 
 /* word cards */
 .deck{position:relative;height:340px;min-width:0}
@@ -131,6 +152,7 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
       <h1>Tu alemán para <em>trabajar</em> en Alemania.</h1>
       <p class="sub">Aprende el vocabulario de tu profesión, desde el español, con práctica diaria que de verdad se queda.</p>
       <a class="cta" href="#lista">Quiero acceso anticipado →</a>
+      <a class="ghost" href="https://claude.ai/artifact/KEywUDXASTzhs9HdKwE7J1" target="_blank" rel="noopener" data-goatcounter-click="probar-app">Pruébala gratis</a>
       <p class="fine">Gratis para empezar. Sin tarjeta.</p>
     </div>
     <div class="deck" aria-label="Ejemplos de tarjetas de vocabulario">
@@ -243,7 +265,7 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
         </div>
         <div class="check">
           <input id="acepto" name="acepto" type="checkbox" required>
-          <label for="acepto">Acepto recibir emails sobre el lanzamiento. Puedo darme de baja cuando quiera.</label>
+          <label for="acepto">Acepto la <a href="privacidad.html">política de privacidad</a> y recibir emails sobre el lanzamiento. Puedo darme de baja cuando quiera.</label>
         </div>
         <button class="cta" type="submit" id="enviar">Quiero acceso anticipado</button>
         <p class="msg" id="msg" role="status" aria-live="polite"></p>
@@ -251,7 +273,7 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
     </div>
   </section>
 
-  <footer>Wortschatz · 2026 · Hecho para quienes empiezan una nueva vida en Alemania.</footer>
+  <footer>Wortschatz · 2026 · Hecho para quienes empiezan una nueva vida en Alemania. · <a href="privacidad.html">Privacidad</a></footer>
 </div>
 
 <script>
@@ -286,11 +308,12 @@ form.addEventListener("submit", async (e) => {
     email: form.email.value.trim().toLowerCase(),
     profesion: form.profesion.value,
     nivel: form.nivel.value,
+    consentimiento: true,
     fecha: new Date().toISOString()
   };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return say("Revisa tu email: parece incompleto.", "err");
   if (!data.profesion || !data.nivel) return say("Elige tu profesión y tu nivel de alemán.", "err");
-  if (!form.acepto.checked) return say("Marca la casilla para poder escribirte.", "err");
+  if (!form.acepto.checked) return say("Marca la casilla de privacidad para poder escribirte.", "err");
 
   btn.disabled = true; say("Enviando…");
   try {
@@ -304,6 +327,7 @@ form.addEventListener("submit", async (e) => {
     } else {
       throw new Error("preview");
     }
+    if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "registro-lista", title: "Registro en la lista de espera", event: true });
     form.reset();
     say("¡Listo! Te escribiremos cuando abramos el acceso anticipado.", "ok");
     if (user && await user.isOwner()) initClaude();
@@ -314,5 +338,7 @@ form.addEventListener("submit", async (e) => {
   } finally { btn.disabled = false; }
 });
 </script>
+<!-- Analítica sin cookies: GoatCounter (rumboalemania.goatcounter.com) -->
+<script data-goatcounter="https://rumboalemania.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
 </body>
 </html>
