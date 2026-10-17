@@ -792,8 +792,9 @@ function vlPool(){return vPool().filter(function(v){return !(S.vlearn&&S.vlearn[
 function vLesson(){
   var t=function(rows){return '<div class="vtw"><table class="vt"><tbody>'+rows.map(function(r){return '<tr><th>'+r[0]+'</th><td>'+r[1]+'</td><td>'+(r[2]||'')+'</td></tr>'}).join('')+'</tbody></table></div>'};
   var ex=function(s){return '<div class="exrow"><p class="ex">'+esc(s)+'</p><button class="icon" data-a="vsay" data-t="'+esc(s)+tl('" aria-label="Pronounce">')+ICON+'</button></div>'};
-  var sec=function(title,body,open){return '<details class="rule a-none"'+(open?' open':'')+'><summary><span>'+title+'</span></summary><div class="rule-body">'+body+'</div></details>'};
-  var h=tl('<div class="qtop"><button class="link exit" data-a="vlesson">✕ Close</button></div><h2 class="st">How German verbs work</h2>')+'<p class="sub">'+tl('Eight short lessons. Open one, read the examples and tap 🔊 to hear them.')+'</p>';
+  var SECS=[], SECLV=['A1','A1','A1','A1','A2','A2','B1','A1'];
+  var sec=function(title,body,open){SECS.push({lv:SECLV[SECS.length],t:title.replace(/^\d · /,''),b:body,o:open});return ''};
+  var h=tl('<div class="qtop"><button class="link exit" data-a="vlesson">✕ Close</button></div><h2 class="st">How German verbs work</h2>')+'<p class="sub">'+tl('Short lessons, ordered by level. Open one, read the examples and tap 🔊 to hear them.')+'</p>';
   h+=sec(tl('1 · Present tense: the endings'),tl('<p class="sub" style="margin:6px 0 0">Take the infinitive, remove <b>-en</b> to get the stem (mach<b>en</b> → mach-), then add an ending for each person.</p>')+
     t([['ich','mach<b>e</b>','-e'],['du','mach<b>st</b>','-st'],['er/sie/es','mach<b>t</b>','-t'],['wir','mach<b>en</b>','-en'],['ihr','mach<b>t</b>','-t'],['sie/Sie','mach<b>en</b>','-en']])+
     tl('<p class="warn">If the stem ends in -t or -d, add an e: du arbeit<b>est</b>, er arbeit<b>et</b>. If it ends in -s, -ß or -z, du only adds -t: du heiß<b>t</b>.</p>')+ex(tl('Ich mache, du machst, er macht.')),true);
@@ -829,6 +830,15 @@ function vLesson(){
     rt(tl('Modal verbs'))+
     full(['können','müssen','dürfen','wollen','sollen','mögen','möchten'],['kann|kannst|kann|können|könnt|können','muss|musst|muss|müssen|müsst|müssen','darf|darfst|darf|dürfen|dürft|dürfen','will|willst|will|wollen|wollt|wollen','soll|sollst|soll|sollen|sollt|sollen','mag|magst|mag|mögen|mögt|mögen','möchte|möchtest|möchte|möchten|möchtet|möchten'],[[tl('Past'),'konnte','musste','durfte','wollte','sollte','mochte','wollte']])+
     warn(tl('Modal verbs have no ending for ich and er, and most lose their umlaut in the singular (können → ich kann) and in the past (konnte, musste, durfte). möchten (would like) is a polite form of mögen. Its past is wollte.'))+ex('Ich möchte einen Kaffee, aber ich darf keinen Zucker.'));
+  var cur=ruleLevel(), ci=LV.indexOf(cur), n=0;
+  LV.forEach(function(lv,i){
+    var ss=SECS.filter(function(x){return x.lv===lv}), dk=VDRILL[lv];
+    if(!ss.length&&!dk) return;
+    h+=lvHead(lv,i,ci);
+    if(i>ci&&!(ui.rshow&&ui.rshow[lv])){n+=ss.length;h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV lessons anyway').replace('LV',lv)+'</button>';return}
+    ss.forEach(function(x){n++;h+='<details class="rule a-none"'+(x.o&&i===ci?' open':'')+'><summary><span>'+n+' · '+x.t+'</span></summary><div class="rule-body">'+x.b+'</div></details>'});
+    if(dk) h+=rcard(dk,true);
+  });
   h+=tl('<button class="btn wide" data-a="vlesson">Back to verbs</button>');
   return h;
 }
@@ -1046,7 +1056,7 @@ function ruleFor(w){
   return R('none',tl('No rule: learn this one by heart'));
 }
 function ruleHtml(w){var r=ruleFor(w);return r?'<p class="rhint r-'+r.kind+'">'+(r.kind==='ok'?'✓ ':r.kind==='ex'?'⚠ ':'✎ ')+esc(r.text)+'</p>':''}
-// Preposition + article contractions (im, am, zum…) and a short drill
+// Preposition + article contractions (im, am, zum…)
 var CONTR=[['Ich bin ___ Büro.','im',['in','ins','am'],'in + dem = im. Where? → Dativ.'],['Ich gehe heute ___ Kino.','ins',['im','in','zum'],'in + das = ins. Where to? → Akkusativ.'],
  ['Wir treffen uns ___ Montag.','am',['im','um','an'],'Days of the week: an + dem = am.'],['Ich fahre mit dem Rad ___ Arbeit.','zur',['zum','zu','in'],'die Arbeit is feminine: zu + der = zur.'],
  ['Wie komme ich ___ Bahnhof?','zum',['zur','im','am'],'der Bahnhof is masculine: zu + dem = zum.'],['Er ist gerade ___ Arzt.','beim',['bei','zum','vom'],'bei + dem = beim.'],
@@ -1067,29 +1077,71 @@ function contrRule(){
     '<p class="rt">'+tl('Use the long form when you mean one specific thing (this one, that one) or when a relative clause follows')+'</p><div class="exs">'+exChips('in dem Haus, in dem ich wohne, zu dem Arzt, den du kennst')+'</div>'+
     '<p class="rt">'+tl('No short form with die or plurals')+'</p><div class="exs">'+exChips('in die Stadt, in der Stadt, an die Wand, zu den Freunden')+'</div>'+
     '<p class="warn">'+tl('Only zu der becomes zur. in die, an die, auf die and every plural (in den, zu den) stay as two words.')+'</p>'+
-    '<button class="btn wide" data-a="drgo">'+tl('Practice im, am, zum…')+'</button></div></details>';
+    '</div></details>';
 }
 function vDrill(){
   var q=ui.dr, h='';
-  if(q.i>=q.qs.length) return '<div class="done"><h2>'+tl('Done! ')+q.ok+tl(' of ')+q.qs.length+tl(' right.')+'</h2><button class="btn wide" data-a="drgo">'+tl('Practice again')+'</button><button class="btn ghost wide" data-a="drx" style="margin-top:8px">'+tl('Back to rules')+'</button></div>';
+  if(q.i>=q.qs.length) return '<div class="done"><h2>'+tl('Done! ')+q.ok+tl(' of ')+q.qs.length+tl(' right.')+'</h2><p class="sub">'+(q.ok>=RPASS?tl('Passed. It counts toward your ')+DRILLS[q.k].lv+tl(' goal.'):tl('You need 8 of 10 to pass. Try again when you are ready.'))+'</p><button class="btn wide" data-a="drgo" data-v="'+q.k+'">'+tl('Practice again')+'</button><button class="btn ghost wide" data-a="drx" style="margin-top:8px">'+tl('Back to rules')+'</button></div>';
   var c=q.qs[q.i];
   h+='<div class="qtop"><button class="link exit" data-a="drx">'+tl('✕ Exit')+'</button></div><div class="prog"><i style="width:'+Math.round(q.i/q.qs.length*100)+'%"></i></div>';
-  h+='<p class="qn">'+tl('Prepositions + article · ')+(q.i+1)+tl(' of ')+q.qs.length+'</p><div class="qprompt" style="margin:6px 0 14px">'+esc(q.picked===null?c.q:c.q.replace('___',c.ans))+'</div><div class="opts">';
+  h+='<p class="qn">'+tl(DRILLS[q.k].t)+' · '+(q.i+1)+tl(' of ')+q.qs.length+'</p><div class="qprompt" style="margin:6px 0 14px">'+esc(q.picked===null?c.q:c.q.replace('___',c.ans))+'</div><div class="opts">';
   c.opts.forEach(function(o){var cls='opt';if(q.picked!==null){if(o===c.ans)cls+=' ok';else if(o===q.picked)cls+=' bad'}h+='<button class="'+cls+'" data-a="drpick" data-v="'+esc(o)+'"'+(q.picked!==null?' disabled':'')+'>'+esc(o)+'</button>'});
   h+='</div>';
   if(q.picked!==null) h+=fbk(q.picked===c.ans,c.ans)+'<p class="sub" style="margin:12px 0">'+esc(tl(c.why))+'</p><button class="btn wide" data-a="drnext">'+tl('Next')+'</button>';
   return h;
 }
+// Rule practices by level. Passing one (8 of 10) counts toward that level's path goal.
+var DRILLS={
+ gender:{lv:'A1',t:'Noun gender: der, die, das',items:[['___ Zeitung','die',['der','das'],'-ung → always die.'],['___ Mädchen','das',['die','der'],'-chen → always das, even for a girl.'],['___ Lehrerin','die',['der','das'],'Female people ending in -in → die.'],['___ Montag','der',['die','das'],'Days, months and seasons → der.'],['___ Freiheit','die',['der','das'],'-heit → always die.'],['___ Dokument','das',['der','die'],'-ment → das.'],['___ Kühlschrank','der',['die','das'],'Compound: the last part decides. der Schrank → der Kühlschrank.'],['___ Universität','die',['der','das'],'-tät → die.'],['___ Essen','das',['der','die'],'Verbs used as nouns → das.'],['___ Tourismus','der',['die','das'],'-ismus → der.'],['___ Lampe','die',['der','das'],'Most nouns ending in -e → die.'],['___ Winter','der',['die','das'],'Seasons → der.'],['___ Krankenhaus','das',['der','die'],'Compound: das Haus → das Krankenhaus.'],['___ Freundschaft','die',['der','das'],'-schaft → die.'],['___ Brötchen','das',['der','die'],'-chen → das.'],['___ Information','die',['der','das'],'-ion → die.']]},
+ vA1:{lv:'A1',t:'Verbs: present, separable and modal',items:[['Du ___ gut Deutsch. (sprechen)','sprichst',['sprechst','spricht','sprechen'],'e → i for du and er: du sprichst.'],['Er ___ einen Film. (sehen)','sieht',['seht','siehst','sehe'],'e → ie for du and er: er sieht.'],['Sie ___ nach Hamburg. (fahren)','fährt',['fahrt','fährst','fahren'],'a → ä for du and er/sie/es: sie fährt.'],['Ihr ___ Kaffee. (trinken)','trinkt',['trinkst','trinken','trinke'],'ihr → -t.'],['Du ___ viel. (arbeiten)','arbeitest',['arbeitst','arbeitet','arbeiten'],'The stem ends in -t, so add an e: du arbeitest.'],['Wie ___ du? (heißen)','heißt',['heißst','heißest','heiße'],'The stem ends in -ß, so du only adds -t.'],['Ich ___ um sieben Uhr auf. (aufstehen)','stehe',['aufstehe','stehst','steht'],'Separable: the verb is in position 2 and auf goes to the end.'],['Ich ___ dich morgen an. (anrufen)','rufe',['anrufe','rufst','rufen'],'Separable: rufe … an.'],['Er ___ heute nicht kommen. (können)','kann',['kannt','könnt','kannst'],'Modal verbs: ich and er have no ending. er kann.'],['Ich ___ einen Kaffee, bitte. (möchten)','möchte',['möchtet','möchten','möchtest'],'ich möchte: the polite way to say what you want.'],['Wir ___ den Bericht schreiben. (müssen)','müssen',['muss','müsst','musst'],'wir looks like the infinitive: wir müssen.'],['Du ___ hier nicht rauchen. (dürfen)','darfst',['dürfst','darf','dürft'],'Modal verbs lose the umlaut in the singular: du darfst.'],['Er ___ Lehrer. (sein)','ist',['bist','sind','seid'],'sein: ich bin, du bist, er ist.'],['Du ___ ein Auto. (haben)','hast',['habst','hat','habt'],'haben: du hast, er hat.']]},
+ contr:{lv:'A2',t:'Prepositions + article: im, am, zum',items:[]},
+ plural:{lv:'A2',t:'Plurals',items:[['die Lampe → die ___','Lampen',['Lampe','Lampes','Lämpe'],'Feminine nouns ending in -e add -n.'],['die Zeitung → die ___','Zeitungen',['Zeitungs','Zeitung','Zeitunge'],'-ung adds -en.'],['die Lehrerin → die ___','Lehrerinnen',['Lehrerinen','Lehrerins','Lehrerin'],'-in adds -nen.'],['der Lehrer → die ___','Lehrer',['Lehrers','Lehreren','Lehrern'],'der and das nouns ending in -er don’t change.'],['das Mädchen → die ___','Mädchen',['Mädchens','Mädchenen','Mädcher'],'-chen doesn’t change.'],['das Auto → die ___','Autos',['Auto','Autoen','Äuter'],'Nouns ending in a vowel (not -e) and foreign words add -s.'],['das Kind → die ___','Kinder',['Kinde','Kinds','Kinden'],'Short das nouns often add -er.'],['das Haus → die ___','Häuser',['Hause','Hauser','Häuse'],'Short das nouns add -er, often with an umlaut.'],['der Tisch → die ___','Tische',['Tischer','Tischen','Tisch'],'Many der nouns add -e.'],['der Stuhl → die ___','Stühle',['Stuhle','Stuhls','Stühler'],'Many der nouns add -e, often with an umlaut.'],['die Information → die ___','Informationen',['Informations','Information','Informatione'],'-ion adds -en.'],['das Handy → die ___','Handys',['Handies','Handyen','Handy'],'Foreign words add -s.'],['der Vater → die ___','Väter',['Vaters','Vatern','Vätere'],'-er nouns get no ending, sometimes an umlaut.'],['Ich spiele mit den ___. (das Kind)','Kindern',['Kinder','Kinden','Kinds'],'Dativ plural adds -n, unless the plural already ends in -n or -s.']]},
+ vA2:{lv:'A2',t:'Verbs: simple past and perfect',items:[['Gestern ___ ich müde. (sein)','war',['bin','wurde','hatte'],'Simple past of sein: war.'],['Wir ___ keine Zeit. (haben, simple past)','hatten',['hatte','haben','hattet'],'wir hatten.'],['Ich ___ nach Berlin gefahren.','bin',['habe','war','hat'],'Movement from A to B → sein: ich bin gefahren.'],['Ich ___ Deutsch gelernt.','habe',['bin','hat','war'],'Most verbs use haben.'],['Er ist um sieben ___. (aufstehen)','aufgestanden',['geaufstanden','aufgesteht','aufstanden'],'Separable: ge- goes in the middle.'],['Sie hat in Berlin ___. (studieren)','studiert',['gestudiert','studieret','gestudieren'],'Verbs ending in -ieren have no ge-.'],['Wir haben einen Kuchen ___. (machen)','gemacht',['gemachen','macht','gemachtet'],'Regular: ge + stem + t.'],['Ich habe das nicht ___. (verstehen)','verstanden',['geverstanden','verstehen','verstandet'],'Verbs with ver-, be- or er- have no ge-.'],['Er ___ gestern nicht kommen. (können)','konnte',['kann','könnte','gekonnt'],'Modal verbs in the past: konnte, musste, wollte.'],['Sie ___ zu Hause geblieben.','ist',['hat','war','wird'],'bleiben takes sein: ist geblieben.'],['Wir haben Fisch ___. (essen)','gegessen',['geesst','gegesst','geessen'],'Irregular participle: gegessen.'],['Ich ___ letzte Woche krank. (sein, simple past)','war',['bin','hatte','wurde'],'In speech, sein uses the simple past: ich war.']]},
+ vB1:{lv:'B1',t:'Irregular verbs: past and participle',items:[['trinken, ___, getrunken','trank',['trinkte','trunk','tronk'],'Pattern i → a → u.'],['sprechen, sprach, ___','gesprochen',['gesprecht','gesprachen','gesprochten'],'Pattern e → a → o.'],['bleiben, ___, geblieben','blieb',['bleibte','blib','bliebte'],'Pattern ei → ie → ie.'],['fliegen, flog, ___','geflogen',['gefliegt','geflügen','geflagen'],'Pattern ie → o → o.'],['bringen, ___, gebracht','brachte',['brang','bringte','brach'],'Mixed verb: -te plus a new stem.'],['denken, dachte, ___','gedacht',['gedenkt','gedachen','gedunken'],'Mixed verb: ge…t with a new stem.'],['fahren, ___, gefahren','fuhr',['fahrte','fohr','fuhrte'],'Pattern a → u → a.'],['schlafen, ___, geschlafen','schlief',['schlafte','schluf','schlof'],'Pattern a → ie → a.'],['finden, fand, ___','gefunden',['gefindet','gefanden','gefinden'],'Pattern i → a → u.'],['wissen, ___, gewusst','wusste',['wisste','weißte','wuss'],'Mixed verb: wusste, gewusst.'],['nehmen, nahm, ___','genommen',['genehmt','genahmen','genimmt'],'Pattern e → a → o, with mm.'],['schreiben, ___, geschrieben','schrieb',['schreibte','schrib','schrob'],'Pattern ei → ie → ie.'],['sehen, sah, ___','gesehen',['gesahen','gesieht','gesehnt'],'Pattern e → a → e.'],['kennen, ___, gekannt','kannte',['kennte','kann','kunnte'],'Mixed verb: kannte, gekannt.']]}
+};
+DRILLS.contr.items=CONTR;
+var VDRILL={A1:'vA1',A2:'vA2',B1:'vB1'};
+var RPASS=8;
+function ruleLevel(){return curLevel()||'B2'}
+function rpBest(k){return (S.rp||{})[k]}
+function rpPassed(k){return (rpBest(k)||0)>=RPASS}
+function rpUnits(lv){return Object.keys(DRILLS).filter(function(k){return DRILLS[k].lv===lv})}
+function lvHead(lv,i,ci){
+  var u=rpUnits(lv), p=u.filter(rpPassed).length;
+  return '<h3 class="rt lvh"><span class="lvt'+(i>ci?' lock':'')+'">'+(i>ci?'🔒 ':'')+lv+'</span> '+(i<ci?tl('Earlier level'):i===ci?tl('Your level'):tl('Coming later'))+(u.length?'<span class="lvn">'+p+'/'+u.length+tl(' practices passed')+'</span>':'')+'</h3>';
+}
+function rcard(k,inLesson){
+  var u=DRILLS[k], b=rpBest(k), ok=rpPassed(k);
+  return '<div class="story"><b>'+(ok?'<span class="tick">✓</span> ':'')+tl('Practice: ')+tl(u.t)+'</b><span class="exen">'+(b==null?tl('Not practiced yet. Pass with 8 of 10.'):tl('Best: ')+b+'/10'+(ok?tl(' · passed'):tl(' · pass with 8 of 10')))+'</span><div class="row" style="margin-top:8px">'+
+    (u.lv&&VDRILL[u.lv]===k&&!inLesson?'<button class="btn ghost" data-a="vlgo">'+tl('Read the lessons')+'</button>':'')+'<button class="btn" data-a="drgo" data-v="'+k+'">'+tl('Practice')+'</button></div></div>';
+}
+function pluralRule(){
+  return '<details class="rule a-none"><summary><span>'+tl('Plurals · die Kinder, die Häuser')+'</span></summary><div class="rule-body">'+
+    '<p class="sub" style="margin:6px 0 0">'+tl('German has several plural endings. These patterns cover most nouns. In the plural the article is always die.')+'</p>'+
+    '<div class="vtw"><table class="vt wrap"><tbody>'+[['die … -e','+ n','die Lampe → die Lampen'],['-ung, -heit, -keit, -ion','+ en','die Zeitung → die Zeitungen'],['-in','+ nen','die Lehrerin → die Lehrerinnen'],['der/das … -er, -el, -en, -chen',tl('no change (sometimes ¨)'),'der Lehrer → die Lehrer, der Vater → die Väter'],[tl('many der nouns'),tl('+ e (often ¨)'),'der Tisch → die Tische, der Stuhl → die Stühle'],[tl('short das nouns'),tl('+ er (with ¨)'),'das Kind → die Kinder, das Haus → die Häuser'],[tl('vowel at the end, foreign words'),'+ s','das Auto → die Autos, das Handy → die Handys']].map(function(r){return '<tr><th>'+r[0]+'</th><td><b>'+r[1]+'</b></td><td>'+r[2]+'</td></tr>'}).join('')+'</tbody></table></div>'+
+    '<p class="warn">'+tl('Dativ plural adds -n: mit den Kindern (unless the plural ends in -n or -s: mit den Autos). Every noun card shows its plural, so learn it together with the word.')+'</p></div></details>';
+}
 function vRules(){
   if(ui.dr) return vDrill();
+  var cur=ruleLevel(), ci=LV.indexOf(cur);
+  var h='<p class="rules-intro">'+tl('Rules are ordered by level, from simple to complex. Start with your level. Passing a level’s practices (8 of 10) counts toward that level in your path.')+'</p>';
+  LV.forEach(function(lv,i){
+    h+=lvHead(lv,i,ci);
+    if(i>ci&&!(ui.rshow&&ui.rshow[lv])){h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV rules anyway').replace('LV',lv)+'</button>';return}
+    if(lv==='A1') h+=genderRules()+rcard('gender')+rcard('vA1');
+    if(lv==='A2') h+=casesRule()+contrRule()+rcard('contr')+pluralRule()+rcard('plural')+rcard('vA2');
+    if(lv==='B1') h+=rcard('vB1');
+    if(lv==='B2') h+='<p class="sub">'+tl('No new rules for B2 yet. Keep going with the conversations and stories.')+'</p>';
+  });
+  return h;
+}
+function genderRules(){
   var h=tl('<p class="rules-intro">Patterns help you guess, but German has many exceptions. The safest habit is to learn every noun together with its article.</p>');
   RULES.forEach(function(r,i){
     h+='<details class="rule '+ac(r.art)+'"'+(i===0?' open':'')+'><summary><span><span class="art">'+r.art+'</span> · '+r.name+'</span></summary><div class="rule-body">';
     r.rules.forEach(function(x){h+='<p class="rt">'+esc(x[0])+'</p><div class="exs">'+exChips(x[1])+'</div>'});
     h+='<p class="warn">'+esc(r.warn)+'</p></div></details>';
   });
-  h+=casesRule();
-  h+=contrRule();
   h+=tl('<details class="rule a-none"><summary><span>Compound words</span></summary><div class="rule-body">')+
     tl('<p class="rt">A compound noun takes the gender of its last word</p><div class="exs">')+exChips('der Kühlschrank, das Krankenhaus, die Datenbank, das Wörterbuch')+'</div>'+
     '<p class="warn">Kühl + der Schrank → der Kühlschrank. Kranken + das Haus → das Krankenhaus. This rule almost never fails.</p></div></details>';
@@ -1166,6 +1218,7 @@ function pathGoals(lv){
     {t:tl('Read the ')+lv+tl(' stories'),have:st.filter(function(s){return S.read&&S.read[s.id]}).length,need:st.length,go:'read'}
   ];
   if(C) g.push({t:C+tl(' right answers in Cases'),have:S.cs||0,need:C,go:'case'});
+  var ru=rpUnits(lv); if(ru.length) g.push({t:tl('Pass the ')+lv+tl(' rule practices'),have:ru.filter(rpPassed).length,need:ru.length,go:'rules'});
   return g;
 }
 function levelDone(lv){return pathGoals(lv).every(function(x){return x.have>=x.need})}
@@ -1474,14 +1527,17 @@ var A={
     else if(v==='read'){ui.tab=ui.lsub='read';ui.rd=null;ui.rdl=curLevel()||'A1'}
     else if(v==='write'){ui.tab='quiz';ui.mode='write';ui.quiz=null;ui.msg=''}
     else if(v==='case'){ui.tab='quiz';ui.mode='case';ui.quiz=null;ui.msg=''}
+    else if(v==='rules'){ui.tab=ui.msub='rules';ui.dr=null}
     else if(v.indexOf('conv')===0){ui.tab=ui.wsub='conv';ui.cv=null;ui.cvl=v.slice(4)}
     render();document.getElementById('main').scrollTop=0;
   },
   sfxt:function(){S.sfx=S.sfx===false;save();render();if(S.sfx)sfx(true)},
   setgoal:function(d){S.goal=+d.v;save();render()},
-  drgo:function(){ui.dr={qs:shuffle(CONTR).slice(0,10).map(function(c){return {q:c[0],ans:c[1],opts:shuffle([c[1]].concat(c[2])),why:c[3]}}),i:0,ok:0,picked:null};ui.tab=ui.msub='rules';render();document.getElementById('main').scrollTop=0},
+  drgo:function(d){var k=d.v||'contr';ui.dr={k:k,qs:shuffle(DRILLS[k].items).slice(0,10).map(function(c){return {q:c[0],ans:c[1],opts:shuffle([c[1]].concat(c[2])),why:c[3]}}),i:0,ok:0,picked:null};ui.tab=ui.msub='rules';render();document.getElementById('main').scrollTop=0},
   drpick:function(d){var q=ui.dr;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];var ok=d.v===c.ans;sfx(ok);if(ok)q.ok++;tick();save();render()},
-  drnext:function(){var q=ui.dr;q.i++;q.picked=null;render();document.getElementById('main').scrollTop=0},
+  drnext:function(){var q=ui.dr;q.i++;q.picked=null;if(q.i>=q.qs.length){S.rp=S.rp||{};S.rp[q.k]=Math.max(S.rp[q.k]||0,q.ok);save()}render();document.getElementById('main').scrollTop=0},
+  rshow:function(d){ui.rshow=ui.rshow||{};ui.rshow[d.v]=true;render()},
+  vlgo:function(){ui.dr=null;ui.tab='verbs';ui.vlesson=true;render();document.getElementById('main').scrollTop=0},
   drx:function(){ui.dr=null;render();document.getElementById('main').scrollTop=0},
   plpick:function(d){var q=ui.pl;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];sfx(d.v===c.ans);if(d.v===c.ans)q.right[c.lv]=(q.right[c.lv]||0)+1;render()},
   plnext:function(){var q=ui.pl;q.i++;q.picked=null;if(q.i>=q.qs.length){S.place={lvl:placeResult(q.right),at:today()};save()}render();document.getElementById('main').scrollTop=0},
