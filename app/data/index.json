@@ -1,0 +1,21 @@
+{
+ "version": "9793bee7a8",
+ "files": {
+  "stories": "stories.json",
+  "placement": "placement.json",
+  "verbs": "verbs.json",
+  "wotd": "wotd.json",
+  "conversations": "conversations.json",
+  "idioms": "idioms.json",
+  "words": "words.json",
+  "es": "es.json",
+  "jobs": [
+   "jobs/data.json",
+   "jobs/medicine.json",
+   "jobs/it.json",
+   "jobs/office.json",
+   "jobs/engineering.json",
+   "jobs/teaching.json"
+  ]
+ }
+}
