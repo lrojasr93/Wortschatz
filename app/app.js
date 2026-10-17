@@ -774,7 +774,7 @@ function vNote(v){
   else if(ch.length) out.push(tl('Irregular present: ')+ch.join(', ')+'.');
   else out.push(tl('Regular present: stem ')+vStem(sp.base)+tl('- + the normal endings.'));
   if(sp.pre) out.push(tl('Separable: “')+sp.pre+tl('” goes to the end of the sentence.'));
-  out.push(x.past?tl('Irregular past: ')+v.past+'.':tl('Regular past: ')+v.past+tl(' (stem + te).'));
+  var p0=v.past.split(' ')[0];out.push(x.past&&/te$/.test(p0)?tl('Mixed verb: regular -te, but the stem changes: ')+v.past+'.':x.past?tl('Irregular past: ')+v.past+'.':tl('Regular past: ')+v.past+tl(' (stem + te).'));
   out.push(tl('Perfect with ')+(x.sein?'sein':'haben')+': '+v.perf+(x.strong?tl(' (irregular participle, ends in -en).'):'.'));
   return out;
 }
@@ -793,7 +793,7 @@ function vLesson(){
   var t=function(rows){return '<div class="vtw"><table class="vt"><tbody>'+rows.map(function(r){return '<tr><th>'+r[0]+'</th><td>'+r[1]+'</td><td>'+(r[2]||'')+'</td></tr>'}).join('')+'</tbody></table></div>'};
   var ex=function(s){return '<div class="exrow"><p class="ex">'+esc(s)+'</p><button class="icon" data-a="vsay" data-t="'+esc(s)+tl('" aria-label="Pronounce">')+ICON+'</button></div>'};
   var sec=function(title,body,open){return '<details class="rule a-none"'+(open?' open':'')+'><summary><span>'+title+'</span></summary><div class="rule-body">'+body+'</div></details>'};
-  var h=tl('<div class="qtop"><button class="link exit" data-a="vlesson">✕ Close</button></div><h2 class="st">How German verbs work</h2><p class="sub">Six short lessons. Open one, read the examples and tap 🔊 to hear them.</p>');
+  var h=tl('<div class="qtop"><button class="link exit" data-a="vlesson">✕ Close</button></div><h2 class="st">How German verbs work</h2>')+'<p class="sub">'+tl('Eight short lessons. Open one, read the examples and tap 🔊 to hear them.')+'</p>';
   h+=sec(tl('1 · Present tense: the endings'),tl('<p class="sub" style="margin:6px 0 0">Take the infinitive, remove <b>-en</b> to get the stem (mach<b>en</b> → mach-), then add an ending for each person.</p>')+
     t([['ich','mach<b>e</b>','-e'],['du','mach<b>st</b>','-st'],['er/sie/es','mach<b>t</b>','-t'],['wir','mach<b>en</b>','-en'],['ihr','mach<b>t</b>','-t'],['sie/Sie','mach<b>en</b>','-en']])+
     tl('<p class="warn">If the stem ends in -t or -d, add an e: du arbeit<b>est</b>, er arbeit<b>et</b>. If it ends in -s, -ß or -z, du only adds -t: du heiß<b>t</b>.</p>')+ex(tl('Ich mache, du machst, er macht.')),true);
@@ -804,19 +804,38 @@ function vLesson(){
     ex(tl('Ich stehe um sieben Uhr auf.'))+ex(tl('Ich rufe dich morgen an.'))+tl('<p class="warn">In the perfect, ge- goes in the middle: aufgestanden, angerufen, eingekauft.</p>'));
   h+=sec(tl('4 · Modal verbs'),tl('<p class="sub" style="margin:6px 0 0">können, müssen, wollen, dürfen, sollen, mögen. ich and er/sie/es look the same and have no ending. The second verb goes to the end as an infinitive.</p>')+
     t([['ich','kann','muss'],['du','kannst','musst'],['er/sie/es','kann','muss'],['wir','können','müssen']])+ex(tl('Ich kann heute nicht kommen.'))+ex('Wir müssen den Bericht schreiben.'));
-  h+=sec('5 · Simple past (Präteritum)',tl('<p class="sub" style="margin:6px 0 0">Regular verbs add <b>-te</b> to the stem: mach<b>te</b>, lern<b>te</b>, arbeit<b>ete</b>. Irregular verbs get a new stem: gehen → <b>ging</b>, kommen → <b>kam</b>, sprechen → <b>sprach</b>.</p>')+
+  h+=sec(tl('5 · Simple past (Präteritum)'),tl('<p class="sub" style="margin:6px 0 0">Regular verbs add <b>-te</b> to the stem: mach<b>te</b>, lern<b>te</b>, arbeit<b>ete</b>. Irregular verbs get a new stem: gehen → <b>ging</b>, kommen → <b>kam</b>, sprechen → <b>sprach</b>.</p>')+
     t([['ich','machte','ging'],['du','machtest','gingst'],['er/sie/es','machte','ging'],['wir','machten','gingen'],['ihr','machtet','gingt'],['sie/Sie','machten','gingen']])+
     tl('<p class="warn">ich and er/sie/es are the same. In speech Germans use the Präteritum mostly for sein (war), haben (hatte) and the modal verbs (konnte, musste). For other verbs they use the perfect.</p>')+ex('Gestern war ich müde.'));
   h+=sec(tl('6 · Perfect (Perfekt): the spoken past'),tl('<p class="sub" style="margin:6px 0 0"><b>haben</b> or <b>sein</b> in position 2, and the participle at the end.</p>')+
     t([[tl('Regular'),tl('ge + stem + t'),tl('gemacht, gelernt')],[tl('Irregular'),tl('ge + stem + en'),tl('gesprochen, gegangen')],[tl('No ge-'),tl('-ieren, be-, ver-, er-'),tl('studiert, besucht, verstanden')],[tl('Separable'),tl('prefix + ge + …'),tl('eingekauft, aufgestanden')]])+
     tl('<p class="warn">Use <b>sein</b> with movement from A to B (gehen, fahren, kommen, fliegen) and change of state (werden, aufstehen), plus sein and bleiben. Everything else uses haben.</p>')+ex(tl('Ich habe Deutsch gelernt.'))+ex(tl('Wir sind nach Berlin gefahren.')));
+  var T=function(head,rows){return '<div class="vtw"><table class="vt wrap"><thead><tr>'+head.map(function(x){return '<th>'+x+'</th>'}).join('')+'</tr></thead><tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c,i){return i?'<td>'+c+'</td>':'<th>'+c+'</th>'}).join('')+'</tr>'}).join('')+'</tbody></table></div>'};
+  var P6=['ich','du','er/sie/es','wir','ihr','sie/Sie'];
+  var full=function(vs,forms,extra){var h='';for(var i=0;i<vs.length;i+=2){var n=Math.min(2,vs.length-i),f=forms.slice(i,i+n);h+=T([''].concat(vs.slice(i,i+n)),P6.map(function(p,k){return [p].concat(f.map(function(x){return x.split('|')[k]}))}).concat((extra||[]).map(function(r){return [r[0]].concat(r.slice(1+i,1+i+n))})))}return h};
+  var sub=function(x){return '<p class="sub" style="margin:6px 0 0">'+x+'</p>'}, rt=function(x){return '<p class="rt">'+x+'</p>'}, warn=function(x){return '<p class="warn">'+x+'</p>'};
+  h+=sec(tl('7 · Irregular verbs: what exactly changes'),sub(tl('An irregular verb can change in three places, and each one is separate. gehen is regular in the present but irregular in the past (ging). wissen is irregular in the present (ich weiß) and only half irregular in the past (wusste).'))+
+    T([tl('Where'),tl('What changes'),tl('Example')],[[tl('Present'),tl('only du and er/sie/es, the vowel'),'fahren → du f<b>ä</b>hrst, er f<b>ä</b>hrt'],[tl('Simple past'),tl('new stem, no -te; ich and er have no ending'),'gehen → ich <b>ging</b>'],[tl('Participle'),tl('ends in -en, often with a new vowel'),'trinken → getr<b>u</b>nk<b>en</b>']])+
+    rt(tl('Present: which verbs change their vowel'))+
+    T(['',tl('Example'),tl('Also')],[['e → i','sprechen → du spr<b>i</b>chst','essen, geben, helfen, nehmen, treffen, vergessen, werfen'],['e → ie','sehen → du s<b>ie</b>hst','lesen, empfehlen, stehlen'],['a → ä','fahren → du f<b>ä</b>hrst','fallen, schlafen, tragen, waschen, laden, lassen, halten'],['au → äu','laufen → du l<b>äu</b>fst','']])+
+    warn(tl('wir, ihr and sie never change: wir fahren, ihr fahrt. Also watch the consonants: nehmen → du nimmst, er nimmt. halten → du hältst, er hält (no extra -et).'))+
+    rt(tl('Past and participle: the vowel patterns'))+sub(tl('Strong verbs follow a few vowel patterns. Learn the three forms together, like a song: trinken, trank, getrunken.'))+
+    T([tl('Pattern'),tl('Example'),tl('Also')],[['ei → ie → ie','bleiben, blieb, geblieben','schreiben, steigen'],['ei → i → i','schneiden, schnitt, geschnitten','reiten, streiten'],['ie → o → o','fliegen, flog, geflogen','verlieren, schließen'],['i → a → u','trinken, trank, getrunken','finden, singen, beginnen'],['e → a → o','sprechen, sprach, gesprochen','helfen, nehmen, treffen'],['e → a → e','sehen, sah, gesehen','lesen, geben, essen (gegessen)'],['a → u → a','fahren, fuhr, gefahren','tragen, waschen'],['a → ie → a','schlafen, schlief, geschlafen','fallen, halten, lassen']])+
+    rt(tl('Mixed verbs: -te and a new vowel'))+sub(tl('A few verbs take the regular -te and ge…t, but still change their stem.'))+
+    T(['',tl('Past'),tl('Perfect')],[['bringen','br<b>ach</b>te','hat gebr<b>ach</b>t'],['denken','d<b>ach</b>te','hat ged<b>ach</b>t'],['kennen','k<b>a</b>nnte','hat gek<b>a</b>nnt'],['nennen','n<b>a</b>nnte','hat gen<b>a</b>nnt'],['rennen','r<b>a</b>nnte','ist ger<b>a</b>nnt'],['wissen','w<b>u</b>sste','hat gew<b>u</b>sst']])+
+    warn(tl('In the Verbs list, every verb card marks its irregular forms in color, so you can see exactly which persons and tenses change.'))+ex('Ich trinke Kaffee. Ich trank Kaffee. Ich habe Kaffee getrunken.'));
+  h+=sec(tl('8 · Full tables: sein, haben, werden, wissen and the modal verbs'),sub(tl('These are the most used verbs in German and the most irregular. Learn them by heart.'))+
+    full(['sein','haben','werden','wissen'],['bin|bist|ist|sind|seid|sind','habe|hast|hat|haben|habt|haben','werde|wirst|wird|werden|werdet|werden','weiß|weißt|weiß|wissen|wisst|wissen'],[[tl('Past'),'war','hatte','wurde','wusste'],[tl('Perfect'),'ist gewesen','hat gehabt','ist geworden','hat gewusst']])+
+    rt(tl('Modal verbs'))+
+    full(['können','müssen','dürfen','wollen','sollen','mögen','möchten'],['kann|kannst|kann|können|könnt|können','muss|musst|muss|müssen|müsst|müssen','darf|darfst|darf|dürfen|dürft|dürfen','will|willst|will|wollen|wollt|wollen','soll|sollst|soll|sollen|sollt|sollen','mag|magst|mag|mögen|mögt|mögen','möchte|möchtest|möchte|möchten|möchtet|möchten'],[[tl('Past'),'konnte','musste','durfte','wollte','sollte','mochte','wollte']])+
+    warn(tl('Modal verbs have no ending for ich and er, and most lose their umlaut in the singular (können → ich kann) and in the past (konnte, musste, durfte). möchten (would like) is a polite form of mögen. Its past is wollte.'))+ex('Ich möchte einen Kaffee, aber ich darf keinen Zucker.'));
   h+=tl('<button class="btn wide" data-a="vlesson">Back to verbs</button>');
   return h;
 }
 function vLearnHome(){
   var p=vPool(), left=vlPool(), next=left.slice(0,5), done=p.length-left.length;
   var h=tl('<div class="chips" role="group" aria-label="Verb group">')+VGROUPS.map(function(g){return '<button class="chip" data-a="vgroup" data-v="'+g[0]+'" aria-pressed="'+(ui.vg===g[0])+'">'+g[1]+'</button>'}).join('')+'</div>'+vpChips();
-  h+=tl('<button class="lessonbtn" data-a="vlesson"><b>How German verbs work</b><span>Endings, stem changes, separable and modal verbs, past and perfect. Start here.</span></button>');
+  h+=tl('<button class="lessonbtn" data-a="vlesson"><b>How German verbs work</b>')+'<span>'+tl('Endings, stem changes, separable and modal verbs, past and perfect, irregular verbs and full tables. Start here.')+'</span></button>';
   h+=tl('<div class="panel"><h2>Learn new verbs</h2><p class="sub">Study 5 verbs at a time: meaning, all forms with sound, and an example. Then a short practice on just those 5. ')+done+tl(' of ')+p.length+tl(' verbs studied here.</p>');
   if(next.length){
     h+=tl('<p class="qlabel">Next up</p><p class="vnext">')+next.map(function(v){return '<b>'+esc(v.inf)+'</b> <span>'+esc(v.en)+'</span>'}).join('<br>')+'</p>';
@@ -1027,7 +1046,42 @@ function ruleFor(w){
   return R('none',tl('No rule: learn this one by heart'));
 }
 function ruleHtml(w){var r=ruleFor(w);return r?'<p class="rhint r-'+r.kind+'">'+(r.kind==='ok'?'✓ ':r.kind==='ex'?'⚠ ':'✎ ')+esc(r.text)+'</p>':''}
+// Preposition + article contractions (im, am, zum…) and a short drill
+var CONTR=[['Ich bin ___ Büro.','im',['in','ins','am'],'in + dem = im. Where? → Dativ.'],['Ich gehe heute ___ Kino.','ins',['im','in','zum'],'in + das = ins. Where to? → Akkusativ.'],
+ ['Wir treffen uns ___ Montag.','am',['im','um','an'],'Days of the week: an + dem = am.'],['Ich fahre mit dem Rad ___ Arbeit.','zur',['zum','zu','in'],'die Arbeit is feminine: zu + der = zur.'],
+ ['Wie komme ich ___ Bahnhof?','zum',['zur','im','am'],'der Bahnhof is masculine: zu + dem = zum.'],['Er ist gerade ___ Arzt.','beim',['bei','zum','vom'],'bei + dem = beim.'],
+ ['Ich komme gerade ___ Arzt.','vom',['von','zum','beim'],'von + dem = vom.'],['Im Sommer fahren wir ___ Meer.','ans',['am','an','ins'],'das Meer, where to? an + das = ans.'],
+ ['Mein Geburtstag ist ___ Juli.','im',['am','in','um'],'Months: in + dem = im.'],['Die Kinder gehen um acht ___ Bett.','ins',['im','zum','in'],'Fixed phrase: ins Bett gehen.'],
+ ['Wir wohnen ___ Stadtrand.','am',['an','im','ans'],'der Stadtrand, where? an + dem = am.'],['Ich gehe ___ Stadt.','in die',['in der','ins','im'],'die Stadt, where to? in + die has no short form.'],
+ ['Ich bin ___ Stadt.','in der',['im','in die','ins'],'die Stadt, where? in + der has no short form.'],['___ Beispiel lerne ich jeden Tag zehn Wörter.','Zum',['Zur','Im','Am'],'Fixed phrase: zum Beispiel.'],
+ ['Das Buch liegt ___ Tisch.','auf dem',['aufs','auf den','am'],'der Tisch, where? auf + dem has no short form.'],['Ich lege das Buch ___ Regal.','aufs',['auf dem','ins','am'],'das Regal, where to? auf + das = aufs (spoken; auf das is also correct).'],
+ ['Am Wochenende fahre ich ___ Freunden.','zu den',['zum','zur','zun'],'die Freunde is plural: zu den has no short form.'],['___ Winter ist es in Berlin sehr kalt.','Im',['Am','In','Um'],'Seasons: in + dem = im.']];
+function contrRule(){
+  var T=function(rows){return '<div class="vtw"><table class="vt wrap"><tbody>'+rows.map(function(r){return '<tr><th>'+r[0]+'</th><td>→ <b>'+r[1]+'</b></td><td>'+r[2]+'</td></tr>'}).join('')+'</tbody></table></div>'};
+  return '<details class="rule a-none"><summary><span>'+tl('Prepositions + article · im, am, zum')+'</span></summary><div class="rule-body">'+
+    '<p class="sub" style="margin:6px 0 0">'+tl('Some prepositions merge with dem, der or das into one short word.')+'</p>'+
+    '<p class="rt">'+tl('Dativ (where? with whom?)')+'</p>'+T([['in dem','im','im Büro, im Juli'],['an dem','am','am Montag, am Abend'],['bei dem','beim','beim Arzt, beim Essen'],['von dem','vom','vom Bahnhof'],['zu dem','zum','zum Bahnhof, zum Arzt'],['zu der','zur','zur Arbeit, zur Schule']])+
+    '<p class="rt">'+tl('Akkusativ (where to?)')+'</p>'+T([['in das','ins','ins Kino, ins Bett'],['an das','ans','ans Meer, ans Fenster']])+
+    '<p class="rt">'+tl('Spoken, optional in writing')+'</p>'+T([['auf das','aufs','aufs Land'],['für das','fürs','fürs Leben'],['um das','ums','ums Haus'],['über das','übers','übers Wochenende']])+
+    '<p class="rt">'+tl('Always the short form in fixed phrases')+'</p><div class="exs">'+exChips('am Montag, am besten, im Moment, im Sommer, zum Beispiel, zum Glück, zum Frühstück, zur Schule, beim Arzt, ins Kino')+'</div>'+
+    '<p class="rt">'+tl('Use the long form when you mean one specific thing (this one, that one) or when a relative clause follows')+'</p><div class="exs">'+exChips('in dem Haus, in dem ich wohne, zu dem Arzt, den du kennst')+'</div>'+
+    '<p class="rt">'+tl('No short form with die or plurals')+'</p><div class="exs">'+exChips('in die Stadt, in der Stadt, an die Wand, zu den Freunden')+'</div>'+
+    '<p class="warn">'+tl('Only zu der becomes zur. in die, an die, auf die and every plural (in den, zu den) stay as two words.')+'</p>'+
+    '<button class="btn wide" data-a="drgo">'+tl('Practice im, am, zum…')+'</button></div></details>';
+}
+function vDrill(){
+  var q=ui.dr, h='';
+  if(q.i>=q.qs.length) return '<div class="done"><h2>'+tl('Done! ')+q.ok+tl(' of ')+q.qs.length+tl(' right.')+'</h2><button class="btn wide" data-a="drgo">'+tl('Practice again')+'</button><button class="btn ghost wide" data-a="drx" style="margin-top:8px">'+tl('Back to rules')+'</button></div>';
+  var c=q.qs[q.i];
+  h+='<div class="qtop"><button class="link exit" data-a="drx">'+tl('✕ Exit')+'</button></div><div class="prog"><i style="width:'+Math.round(q.i/q.qs.length*100)+'%"></i></div>';
+  h+='<p class="qn">'+tl('Prepositions + article · ')+(q.i+1)+tl(' of ')+q.qs.length+'</p><div class="qprompt" style="margin:6px 0 14px">'+esc(q.picked===null?c.q:c.q.replace('___',c.ans))+'</div><div class="opts">';
+  c.opts.forEach(function(o){var cls='opt';if(q.picked!==null){if(o===c.ans)cls+=' ok';else if(o===q.picked)cls+=' bad'}h+='<button class="'+cls+'" data-a="drpick" data-v="'+esc(o)+'"'+(q.picked!==null?' disabled':'')+'>'+esc(o)+'</button>'});
+  h+='</div>';
+  if(q.picked!==null) h+=fbk(q.picked===c.ans,c.ans)+'<p class="sub" style="margin:12px 0">'+esc(tl(c.why))+'</p><button class="btn wide" data-a="drnext">'+tl('Next')+'</button>';
+  return h;
+}
 function vRules(){
+  if(ui.dr) return vDrill();
   var h=tl('<p class="rules-intro">Patterns help you guess, but German has many exceptions. The safest habit is to learn every noun together with its article.</p>');
   RULES.forEach(function(r,i){
     h+='<details class="rule '+ac(r.art)+'"'+(i===0?' open':'')+'><summary><span><span class="art">'+r.art+'</span> · '+r.name+'</span></summary><div class="rule-body">';
@@ -1035,6 +1089,7 @@ function vRules(){
     h+='<p class="warn">'+esc(r.warn)+'</p></div></details>';
   });
   h+=casesRule();
+  h+=contrRule();
   h+=tl('<details class="rule a-none"><summary><span>Compound words</span></summary><div class="rule-body">')+
     tl('<p class="rt">A compound noun takes the gender of its last word</p><div class="exs">')+exChips('der Kühlschrank, das Krankenhaus, die Datenbank, das Wörterbuch')+'</div>'+
     '<p class="warn">Kühl + der Schrank → der Kühlschrank. Kranken + das Haus → das Krankenhaus. This rule almost never fails.</p></div></details>';
@@ -1424,6 +1479,10 @@ var A={
   },
   sfxt:function(){S.sfx=S.sfx===false;save();render();if(S.sfx)sfx(true)},
   setgoal:function(d){S.goal=+d.v;save();render()},
+  drgo:function(){ui.dr={qs:shuffle(CONTR).slice(0,10).map(function(c){return {q:c[0],ans:c[1],opts:shuffle([c[1]].concat(c[2])),why:c[3]}}),i:0,ok:0,picked:null};ui.tab=ui.msub='rules';render();document.getElementById('main').scrollTop=0},
+  drpick:function(d){var q=ui.dr;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];var ok=d.v===c.ans;sfx(ok);if(ok)q.ok++;tick();save();render()},
+  drnext:function(){var q=ui.dr;q.i++;q.picked=null;render();document.getElementById('main').scrollTop=0},
+  drx:function(){ui.dr=null;render();document.getElementById('main').scrollTop=0},
   plpick:function(d){var q=ui.pl;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];sfx(d.v===c.ans);if(d.v===c.ans)q.right[c.lv]=(q.right[c.lv]||0)+1;render()},
   plnext:function(){var q=ui.pl;q.i++;q.picked=null;if(q.i>=q.qs.length){S.place={lvl:placeResult(q.right),at:today()};save()}render();document.getElementById('main').scrollTop=0},
   plclose:function(){ui.pl=null;render();document.getElementById('main').scrollTop=0},
