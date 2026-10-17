@@ -1205,6 +1205,7 @@ function todayStrip(){
 
 // ---- Path A1 → B2 ----
 var LV=['A1','A2','B1','B2'];
+function halfN(){return allWords().filter(function(w){var k=S.know&&S.know[w.id];return k&&k.pd&&k.pd.length>0&&!isMastered(w.id)}).length}
 function learnedN(){return allWords().filter(function(w){return isMastered(w.id)}).length}
 function verbsN(){return VERBS.filter(function(v){return vbox(v)>=3}).length}
 function pathGoals(lv){
@@ -1450,6 +1451,7 @@ function vProg(){
     var gs=pathGoals(lv), done=levelDone(lv), skipped=i<si&&!done;
     h+='<details class="lvl'+(lv===cur?' cur':'')+'"'+(lv===cur?' open':'')+'><summary><b>'+lv+'</b><span>'+(done?tl('✓ Done'):skipped?tl('Passed in the test'):lv===cur?tl('You are here'):tl('Coming up'))+'</span></summary><div class="lvb">';
     gs.forEach(function(x){var f=Math.min(1,x.have/x.need);h+='<button class="goalline" data-a="go" data-v="'+x.go+'"><span>'+(f>=1?'✓ ':'')+esc(x.t)+'</span><span class="gn">'+Math.min(x.have,x.need)+'/'+x.need+'</span><div class="prog"><i style="width:'+Math.round(f*100)+'%"></i></div></button>'});
+    if(lv===cur){var hn=halfN();h+='<p class="sub" style="margin:8px 2px 0">'+tl('A word is mastered when you type it right, with its article, in Practice → Write the word on 2 different days. A wrong answer starts it over.')+(hn?' '+tl('Halfway now: ')+hn+tl(' words (right on one day).'):'')+'</p>'}
     h+='</div></details>';
   });
   h+=vStats()+vBackup();
@@ -1511,7 +1513,7 @@ var A={
     var v=el.value.trim(); if(!v){el.focus();return}
     var w=wotd(), st=wotdState(); if(st.res) return;
     var r=checkWord(v,w), cw=wotdCustom(w); st.res={ok:r.ok,given:v};
-    if(cw){mist('prod:'+cw.id,r.ok);prodAns(cw.id,r.ok&&!r.typo)} else sfx(r.ok);
+    if(cw){mist('prod:'+cw.id,r.ok);if(!r.typo)prodAns(cw.id,r.ok)} else sfx(r.ok);
     if(r.ok){var c=CH();addXp(15);c.wotdN++;if(c.wotdN>=7)medal('wotd7')}
     tick(); render();
   },
@@ -1660,7 +1662,7 @@ var A={
     var v=el.value.trim(); if(!v){el.focus();return}
     var cur=q.qs[q.i]; q.picked=v; q.res=checkWord(v,cur.w);
     if(q.res.ok) q.score++;
-    mist('prod:'+cur.w.id,q.res.ok); prodAns(cur.w.id,q.res.ok&&!q.res.typo); tick(); render();
+    mist('prod:'+cur.w.id,q.res.ok); if(!q.res.typo) prodAns(cur.w.id,q.res.ok); tick(); render();
   },
   wskip:function(){var q=ui.quiz; if(!q||q.picked!==null) return; q.picked='';q.res={ok:false};mist('prod:'+q.qs[q.i].w.id,false);prodAns(q.qs[q.i].w.id,false);render()},
   gskip:function(){var q=ui.quiz; if(!q||q.picked!==null) return; q.picked='';mist('gap:'+q.qs[q.i].w.id,false);render()},
