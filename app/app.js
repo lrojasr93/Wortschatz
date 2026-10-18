@@ -132,8 +132,15 @@ function mist(key,ok){
   if(!_selfGrade){var kk=key.split(':')[0];if(['mean','art','gap','tr','prod'].indexOf(kk)>-1)recog(key.slice(kk.length+1),ok)}
   S.mist=S.mist||{}; var m=S.mist[key];
   if(!ok){ if(!m) m=S.mist[key]={n:0,ok:0}; m.n++; m.ok=0; m.at=Date.now(); }
-  else if(m){ m.ok++; if(m.ok>=MIST_CLEAR) delete S.mist[key]; }
+  else if(m){ m.ok++; if(!_selfGrade) addXp(5); if(m.ok>=MIST_CLEAR){ delete S.mist[key]; if(!_selfGrade){ addXp(10); recovered(key); } } }
   save();
+}
+// An opportunity taken: the item left the list after MIST_CLEAR right answers in a row
+function recovered(key){
+  var kind=key.split(':')[0], rest=key.slice(kind.length+1), name='';
+  if(kind==='verb') name=rest.split('|')[0]; else if(kind==='conv') name=''; else {var w=byId(rest.split('|')[0]); if(w) name=wordKey(w)}
+  dayRec().rc=(dayRec().rc||0)+1;
+  setTimeout(function(){toast(tl('🎉 You recovered it! ')+(name?name+' · ':'')+'+10 XP')},500);
 }
 function mistKeys(kind){return Object.keys(S.mist||{}).filter(function(k){return !kind||k.indexOf(kind+':')===0})}
 function grade(good){
@@ -287,7 +294,7 @@ function vQuiz(){
   });
   h+='</div>';
   if(q.picked!==null) h+=fbk(q.picked===cur.ans,cur.mode==='article'?cur.ans+' '+cur.w.de:cur.ans);
-  if(q.picked!==null&&cur.mode==='article') h+=ruleHtml(cur.w);
+  if(q.picked!==null&&cur.mode==='article') h+=ruleHtml(cur.w)+(q.picked!==cur.ans?ruleLink('go','rules'):'');
   if(q.picked!==null) h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   return h;
 }
@@ -302,7 +309,7 @@ function vWrite(q,cur){
     h+=tl('<button class="link" data-a="wskip">I don’t know</button>');
   } else {
     h+='<div class="gres '+ac(w.art)+'"><p><b>'+(r.ok?(r.typo?tl('Correct, with a small typo. Type it exactly to count toward Mastered.'):tl('Correct!')):(q.picked?(r.note||tl('Not quite.'))+tl(' You wrote “')+esc(q.picked)+'”.':tl('Here is the answer.')))+'</b></p>'+
-      '<div class="exrow" style="margin-top:4px"><p class="trs"><b>'+esc(wordKey(w))+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(wordKey(w))+tl('" aria-label="Pronounce">')+ICON+'</button></div>'+plHtml(w,'pl small')+ruleHtml(w)+'</div>';
+      '<div class="exrow" style="margin-top:4px"><p class="trs"><b>'+esc(wordKey(w))+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(wordKey(w))+tl('" aria-label="Pronounce">')+ICON+'</button></div>'+plHtml(w,'pl small')+ruleHtml(w)+(w.art&&!r.ok&&q.picked&&norm(q.picked).split(' ')[0]!==norm(w.art)?ruleLink('go','rules'):'')+'</div>';
     h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
   return h;
@@ -317,7 +324,7 @@ function vCase(q,cur){
   h+='</div>';
   if(done){
     var full=parts[0]+cur.ans+parts[1];
-    h+='<div class="gres '+ac(cur.w.art)+'" style="margin-top:12px"><p><b>'+CASE_NAME[cur.cs]+'</b></p><p>'+esc(cur.why)+'</p><div class="exrow"><p class="ex">'+esc(full)+'</p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce sentence">')+ICON+'</button></div></div>';
+    h+='<div class="gres '+ac(cur.w.art)+'" style="margin-top:12px"><p><b>'+CASE_NAME[cur.cs]+'</b></p><p>'+esc(cur.why)+'</p><div class="exrow"><p class="ex">'+esc(full)+'</p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce sentence">')+ICON+'</button></div>'+(q.picked!==cur.ans?ruleLink('go','rules'):'')+'</div>';
     h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
   return h;
@@ -414,7 +421,7 @@ function tkey(x){return toks(x).map(function(t){return t.n}).join(' ')}
 function convById(id){return CONVS.find(function(c){return c.id===id})}
 function subnav(a,cur,opts){return '<div class="subnav" role="group" style="grid-template-columns:repeat('+opts.length+',1fr)">'+opts.map(function(o){return '<button data-a="'+a+'" data-v="'+o[0]+'" aria-pressed="'+(cur===o[0])+'">'+o[1]+'</button>'}).join('')+'</div>'}
 function writeNav(){return subnav('wsub',ui.tab,[['translate',tl('Translate')],['conv',tl('Conversation')]])}
-function moreNav(){return subnav('msub',ui.tab,[['words',tl('Words')],['rules',tl('Rules')],['prog',tl('Progress')],['mist',tl('Mistakes')]])}
+function moreNav(){return subnav('msub',ui.tab,[['words',tl('Words')],['rules',tl('Rules')],['prog',tl('Progress')],['mist',tl('Opportunities')]])}
 // ---- Challenges: 3 daily challenges, time attack, word of the day, Sunday boss, combo, XP, medals, unlocks, mystery chest ----
 // Every challenge uses checked exercises (mist()), so answers count toward Recognized and Mastered like Practice does.
 function CH(){
@@ -598,7 +605,7 @@ function vChal(){
   h+=vWotd();
   h+=tl('<div class="panel chcard"><p class="qlabel">Time attack</p><h2>60 seconds</h2><p class="sub">Pick as many meanings as you can. Combos multiply your points. Your best: <b>')+c.best60+tl('</b></p><button class="btn wide" data-a="tastart">Start</button></div>');
   var beat=c.boss===weekKey(), dsun=(7-new Date().getDay())%7;
-  h+=tl('<div class="panel chcard"><p class="qlabel">Weekly boss</p><h2>Sunday boss')+(beat?' ✓':'')+tl('</h2><p class="sub">15 mixed questions from your mistakes and the words you studied. You can miss 3. Beat it for +100 XP.</p>')+(isSunday()&&!beat?tl('<button class="btn wide" data-a="chboss">Fight the boss</button>'):'<p class="note">'+(beat?tl('Beaten this week. The next boss comes on Sunday.'):tl('The boss comes on Sunday, in ')+dsun+PL(dsun,' day',' days',' día',' días')+'.')+'</p>')+'</div>';
+  h+=tl('<div class="panel chcard"><p class="qlabel">Weekly boss</p><h2>Sunday boss')+(beat?' ✓':'')+tl('</h2><p class="sub">15 mixed questions from your opportunities and the words you studied. You can miss 3. Beat it for +100 XP.</p>')+(isSunday()&&!beat?tl('<button class="btn wide" data-a="chboss">Fight the boss</button>'):'<p class="note">'+(beat?tl('Beaten this week. The next boss comes on Sunday.'):tl('The boss comes on Sunday, in ')+dsun+PL(dsun,' day',' days',' día',' días')+'.')+'</p>')+'</div>';
   h+=tl('<h3 class="rt chh">Medals <span>')+Object.keys(c.medals).length+'/'+MEDALS.length+'</span></h3><div class="medals">';
   MEDALS.forEach(function(x){var got=c.medals[x[0]];h+='<div class="medal'+(got?' got':'')+'"><span aria-hidden="true">'+(got?x[1]:'🔒')+'</span><b>'+esc(x[2])+'</b><small>'+esc(x[3])+'</small></div>'});
   h+=tl('</div><h3 class="rt chh">Unlocks</h3><div class="unl">');
@@ -712,6 +719,8 @@ var TNAME={pres:tl('Present'),past:'Simple past (Präteritum)',perf:tl('Perfect 
 function vnorm(x){
   return norm(x).split(/\s+/).filter(function(t,i){return !(i===0&&/^(ich|du|er|sie|es|wir|ihr|man)$/.test(t))}).join(' ');
 }
+// In A1 only present-tense answers count toward mastering a verb; past tenses count from A2
+function vCounts(t){return t==='pres'||LV.indexOf(ruleLevel())>=1}
 function vbox(v){return (S.verbs&&S.verbs[v.inf])||0}
 function vPool(){return VERBS.filter(function(v){return (ui.vg==='all'||v.g===ui.vg)&&(!ui.vp||ui.vp==='all'||pType(v)===ui.vp)})}
 // Verbs grouped by how they build the Perfekt
@@ -774,7 +783,7 @@ function vNote(v){
   else if(ch.length) out.push(tl('Irregular present: ')+ch.join(', ')+'.');
   else out.push(tl('Regular present: stem ')+vStem(sp.base)+tl('- + the normal endings.'));
   if(sp.pre) out.push(tl('Separable: “')+sp.pre+tl('” goes to the end of the sentence.'));
-  var p0=v.past.split(' ')[0];out.push(x.past&&/te$/.test(p0)?tl('Mixed verb: regular -te, but the stem changes: ')+v.past+'.':x.past?tl('Irregular past: ')+v.past+'.':tl('Regular past: ')+v.past+tl(' (stem + te).'));
+  var p0=v.past.split(' ')[0];out.push(x.past&&/te$/.test(p0)&&v.g!=='mod'?tl('Mixed verb: regular -te, but the stem changes: ')+v.past+'.':x.past?tl('Irregular past: ')+v.past+'.':tl('Regular past: ')+v.past+tl(' (stem + te).'));
   out.push(tl('Perfect with ')+(x.sein?'sein':'haben')+': '+v.perf+(x.strong?tl(' (irregular participle, ends in -en).'):'.'));
   return out;
 }
@@ -872,7 +881,7 @@ function startVlPractice(vs){
     var x=vIrr(v), irrP=[0,1,2,3,4,5].filter(function(k){return x.pres[k]});
     var p=irrP.length?irrP[Math.floor(Math.random()*irrP.length)]:Math.floor(Math.random()*6);
     qs.push({v:v,t:'pres',p:p});
-    qs.push({v:v,t:Math.random()<0.5?'past':'perf',p:[0,2,3][Math.floor(Math.random()*3)]});
+    qs.push(vCounts('past')?{v:v,t:Math.random()<0.5?'past':'perf',p:[0,2,3][Math.floor(Math.random()*3)]}:{v:v,t:'pres',p:(p+1+Math.floor(Math.random()*5))%6});
   });
   ui.vq={qs:shuffle(qs),i:0,score:0,res:null,learn:vs};
 }
@@ -887,6 +896,7 @@ function vVerbs(){
     h+=tl('<div class="chips" role="group" aria-label="Verb group">')+VGROUPS.map(function(g){return '<button class="chip" data-a="vgroup" data-v="'+g[0]+'" aria-pressed="'+(ui.vg===g[0])+'">'+g[1]+'</button>'}).join('')+'</div>'+vpChips();
     h+=tl('<div class="panel"><h2>Verb forms</h2><p class="sub">You get a person, a verb and a tense, and you type the right form. ')+p.length+tl(' verbs here, ')+m+tl(' mastered (3 right answers in a row).</p>');
     h+='<div class="seg" role="group" aria-label="Tense">'+VTENSES.map(function(t){return '<button data-a="vtense" data-v="'+t[0]+'" aria-pressed="'+(ui.vt===t[0])+'">'+t[1]+'</button>'}).join('')+'</div>';
+    if(!vCounts('past')&&ui.vt!=='pres') h+='<p class="note">'+tl('You are in A1: only the present counts toward mastering verbs. Past tenses count from A2, but you can practice them now.')+'</p>';
     h+=tl('<button class="btn wide" data-a="vstart">Start 10 questions</button></div>');
     h+=tl('<p class="sub" style="margin-top:14px">Type just the verb (you can include the pronoun). For the perfect, include haben or sein, for example “hat gemacht”. Umlauts can be typed as ae, oe, ue and ß as ss.</p>');
     return h;
@@ -908,14 +918,14 @@ function vVerbs(){
   } else {
     h+='<div class="gres '+(r.ok?'a-das':'a-die')+'"><p><b>'+(r.ok?tl('Correct!'):(r.given?tl('Not quite. You wrote “')+esc(r.given)+'”.':tl('Here is the answer.')))+'</b></p>';
     var full=PERS[c.p].split('/')[0]+' '+ans;
-    h+='<div class="exrow"><p class="vans">'+PERS[c.p].split('/')[0]+' <b>'+esc(ans)+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce ')+esc(full)+'">'+ICON+'</button></div></div>'+vTable(v,c);
+    h+='<div class="exrow"><p class="vans">'+PERS[c.p].split('/')[0]+' <b>'+esc(ans)+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce ')+esc(full)+'">'+ICON+'</button></div>'+(r.ok?'':'<p class="rhint">✎ '+esc(verbWhy(v,c.t))+'</p>'+ruleLink('vlgo'))+'</div>'+vTable(v,c);
     h+='<button class="btn wide" data-a="vnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
   return h;
 }
 function doneReview(sc,n){
   var left=mistKeys().length;
-  return tl('<div class="done"><h2>Review done</h2><div class="score">')+sc+'/'+n+'</div><p class="sub">'+(left?left+PL(left,' mistake',' mistakes',' error',' errores')+tl(' left. Each one leaves the list after you get it right ')+MIST_CLEAR+tl(' times in a row.'):tl('Your mistakes list is empty. Great work!'))+tl('</p><button class="btn wide" data-a="mopen">Back to my mistakes</button></div>');
+  return tl('<div class="done"><h2>Review done</h2><div class="score">')+sc+'/'+n+'</div><p class="sub">'+(left?left+PL(left,' opportunity',' opportunities',' oportunidad',' oportunidades')+tl(' left. Each one leaves the list after you get it right ')+MIST_CLEAR+tl(' times in a row.'):tl('Your opportunities list is empty. Great work!'))+tl('</p><button class="btn wide" data-a="mopen">Back to my opportunities</button></div>');
 }
 function mistItem(k){
   var kind=k.split(':')[0], rest=k.slice(kind.length+1), m=S.mist[k];
@@ -940,8 +950,8 @@ function mistItem(k){
 function vMist(){
   var h='';
   var nW=mistKeys('mean').length+mistKeys('art').length+mistKeys('gap').length+mistKeys('prod').length+mistKeys('case').length, nT=mistKeys('tr').length, nV=mistKeys('verb').length, nC=mistKeys('conv').length;
-  h+=tl('<div class="panel"><h2>My mistakes</h2><p class="sub">Every wrong answer is saved here. Get an item right ')+MIST_CLEAR+tl(' times in a row and it leaves the list. Up to 15 items per round.</p>');
-  if(!(nW+nT+nV+nC)) return h+tl('<p class="sub">No mistakes saved right now.</p></div>');
+  h+=tl('<div class="panel"><h2>My opportunities</h2><p class="sub">Every wrong answer becomes an opportunity. Each right answer on one gives +5 XP, and when you get an item right ')+MIST_CLEAR+tl(' times in a row, you recover it (+10 XP more). Up to 15 items per round.</p>');
+  if(!(nW+nT+nV+nC)) return h+tl('<p class="sub">No opportunities saved right now.</p></div>');
   h+='<div class="opts">'+
     '<button class="opt" data-a="mrev" data-v="words"'+(nW?'':' disabled')+tl('><b>Words</b> · ')+nW+tl(' <span class="exen">(meanings, articles, gaps, writing, cases)</span></button>')+
     '<button class="opt" data-a="mrev" data-v="tr"'+(nT?'':' disabled')+tl('><b>Sentences</b> · ')+nT+'</button>'+
@@ -957,7 +967,7 @@ function mistBar(){
   if(!n||ui.tab==='mist') return '';
   var busy=(ui.tab==='quiz'&&ui.quiz&&ui.quiz.i<ui.quiz.qs.length)||(ui.tab==='translate'&&ui.tr&&ui.tr.i<ui.tr.qs.length)||(ui.tab==='verbs'&&ui.vq&&ui.vq.i<ui.vq.qs.length)||(ui.tab==='conv'&&ui.cv&&ui.cv.i<ui.cv.items.length);
   if(busy) return '';
-  return tl('<button class="mbar" data-a="mopen"><span>My mistakes</span><b>')+n+tl(' to review</b></button>');
+  return tl('<button class="mbar" data-a="mopen"><span>My opportunities</span><b>')+n+tl(' to review</b></button>');
 }
 function listHtml(){
   var t=nfold(ui.search.trim());
@@ -1056,6 +1066,8 @@ function ruleFor(w){
   return R('none',tl('No rule: learn this one by heart'));
 }
 function ruleHtml(w){var r=ruleFor(w);return r?'<p class="rhint r-'+r.kind+'">'+(r.kind==='ok'?'✓ ':r.kind==='ex'?'⚠ ':'✎ ')+esc(r.text)+'</p>':''}
+function ruleLink(a,v){return '<button class="link rlink" data-a="'+a+'"'+(v?' data-v="'+v+'"':'')+'>'+tl('See the rule →')+'</button>'}
+function verbWhy(v,t){var n=vNote(v), sep=vSplit(v).pre?1:0;return t==='pres'?n[0]:t==='past'?n[1+sep]:n[2+sep]}
 // Preposition + article contractions (im, am, zum…)
 var CONTR=[['Ich bin ___ Büro.','im',['in','ins','am'],'in + dem = im. Where? → Dativ.'],['Ich gehe heute ___ Kino.','ins',['im','in','zum'],'in + das = ins. Where to? → Akkusativ.'],
  ['Wir treffen uns ___ Montag.','am',['im','um','an'],'Days of the week: an + dem = am.'],['Ich fahre mit dem Rad ___ Arbeit.','zur',['zum','zu','in'],'die Arbeit is feminine: zu + der = zur.'],
@@ -1451,7 +1463,7 @@ function vProg(){
     var gs=pathGoals(lv), done=levelDone(lv), skipped=i<si&&!done;
     h+='<details class="lvl'+(lv===cur?' cur':'')+'"'+(lv===cur?' open':'')+'><summary><b>'+lv+'</b><span>'+(done?tl('✓ Done'):skipped?tl('Passed in the test'):lv===cur?tl('You are here'):tl('Coming up'))+'</span></summary><div class="lvb">';
     gs.forEach(function(x){var f=Math.min(1,x.have/x.need);h+='<button class="goalline" data-a="go" data-v="'+x.go+'"><span>'+(f>=1?'✓ ':'')+esc(x.t)+'</span><span class="gn">'+Math.min(x.have,x.need)+'/'+x.need+'</span><div class="prog"><i style="width:'+Math.round(f*100)+'%"></i></div></button>'});
-    if(lv===cur){var hn=halfN();h+='<p class="sub" style="margin:8px 2px 0">'+tl('A word is mastered when you type it right, with its article, in Practice → Write the word on 2 different days. A wrong answer starts it over.')+(hn?' '+tl('Halfway now: ')+hn+tl(' words (right on one day).'):'')+'</p><p class="sub" style="margin:6px 2px 0">'+tl('A verb is mastered after 3 right answers in a row in Verbs → Practice, the verb lessons or verb challenges. A wrong answer or a skip starts it over.')+'</p>'}
+    if(lv===cur){var hn=halfN();h+='<p class="sub" style="margin:8px 2px 0">'+tl('A word is mastered when you type it right, with its article, in Practice → Write the word on 2 different days. A wrong answer starts it over.')+(hn?' '+tl('Halfway now: ')+hn+tl(' words (right on one day).'):'')+'</p><p class="sub" style="margin:6px 2px 0">'+tl('A verb is mastered after 3 right answers in a row in Verbs → Practice, the verb lessons or verb challenges. A wrong answer or a skip starts it over.')+(vCounts('past')?'':' '+tl('In A1 only the present tense counts.'))+'</p>'}
     h+='</div></details>';
   });
   h+=vStats()+vBackup();
@@ -1539,7 +1551,7 @@ var A={
   drpick:function(d){var q=ui.dr;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];var ok=d.v===c.ans;sfx(ok);if(ok)q.ok++;tick();save();render()},
   drnext:function(){var q=ui.dr;q.i++;q.picked=null;if(q.i>=q.qs.length){S.rp=S.rp||{};S.rp[q.k]=Math.max(S.rp[q.k]||0,q.ok);save()}render();document.getElementById('main').scrollTop=0},
   rshow:function(d){ui.rshow=ui.rshow||{};ui.rshow[d.v]=true;render()},
-  vlgo:function(){ui.dr=null;ui.tab='verbs';ui.vlesson=true;render();document.getElementById('main').scrollTop=0},
+  vlgo:function(){ui.dr=null;ui.vmode='learn';ui.tab='verbs';ui.vlesson=true;render();document.getElementById('main').scrollTop=0},
   drx:function(){ui.dr=null;render();document.getElementById('main').scrollTop=0},
   plpick:function(d){var q=ui.pl;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];sfx(d.v===c.ans);if(d.v===c.ans)q.right[c.lv]=(q.right[c.lv]||0)+1;render()},
   plnext:function(){var q=ui.pl;q.i++;q.picked=null;if(q.i>=q.qs.length){S.place={lvl:placeResult(q.right),at:today()};save()}render();document.getElementById('main').scrollTop=0},
@@ -1727,12 +1739,12 @@ var A={
     var c=q.qs[q.i], ok=vnorm(val)===vnorm(vForm(c.v,c.t,c.p));
     q.res={ok:ok,given:val}; if(ok) q.score++;
     mist('verb:'+c.v.inf+'|'+c.t+'|'+c.p,ok);
-    S.verbs=S.verbs||{}; S.verbs[c.v.inf]=ok?Math.min(5,vbox(c.v)+1):0;
+    S.verbs=S.verbs||{}; if(vCounts(c.t)) S.verbs[c.v.inf]=ok?Math.min(5,vbox(c.v)+1):0;
     tick(); render();
   },
   vskip:function(){
     var q=ui.vq; if(!q||q.res) return; var c=q.qs[q.i];
-    q.res={ok:false,given:''}; S.verbs=S.verbs||{}; S.verbs[c.v.inf]=0; mist('verb:'+c.v.inf+'|'+c.t+'|'+c.p,false); render();
+    q.res={ok:false,given:''}; S.verbs=S.verbs||{}; if(vCounts(c.t)) S.verbs[c.v.inf]=0; mist('verb:'+c.v.inf+'|'+c.t+'|'+c.p,false); render();
   },
   vmode:function(d){ui.vmode=d.v;render()},
   vlesson:function(){ui.vlesson=!ui.vlesson;render();document.getElementById('main').scrollTop=0},
