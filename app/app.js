@@ -1451,7 +1451,7 @@ function vProg(){
     var gs=pathGoals(lv), done=levelDone(lv), skipped=i<si&&!done;
     h+='<details class="lvl'+(lv===cur?' cur':'')+'"'+(lv===cur?' open':'')+'><summary><b>'+lv+'</b><span>'+(done?tl('✓ Done'):skipped?tl('Passed in the test'):lv===cur?tl('You are here'):tl('Coming up'))+'</span></summary><div class="lvb">';
     gs.forEach(function(x){var f=Math.min(1,x.have/x.need);h+='<button class="goalline" data-a="go" data-v="'+x.go+'"><span>'+(f>=1?'✓ ':'')+esc(x.t)+'</span><span class="gn">'+Math.min(x.have,x.need)+'/'+x.need+'</span><div class="prog"><i style="width:'+Math.round(f*100)+'%"></i></div></button>'});
-    if(lv===cur){var hn=halfN();h+='<p class="sub" style="margin:8px 2px 0">'+tl('A word is mastered when you type it right, with its article, in Practice → Write the word on 2 different days. A wrong answer starts it over.')+(hn?' '+tl('Halfway now: ')+hn+tl(' words (right on one day).'):'')+'</p>'}
+    if(lv===cur){var hn=halfN();h+='<p class="sub" style="margin:8px 2px 0">'+tl('A word is mastered when you type it right, with its article, in Practice → Write the word on 2 different days. A wrong answer starts it over.')+(hn?' '+tl('Halfway now: ')+hn+tl(' words (right on one day).'):'')+'</p><p class="sub" style="margin:6px 2px 0">'+tl('A verb is mastered after 3 right answers in a row in Verbs → Practice, the verb lessons or verb challenges. A wrong answer or a skip starts it over.')+'</p>'}
     h+='</div></details>';
   });
   h+=vStats()+vBackup();
