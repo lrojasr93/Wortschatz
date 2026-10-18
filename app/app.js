@@ -59,10 +59,16 @@ function plText(w){
   return tl('plural: die ')+w.pl;
 }
 function plHtml(w,cls){var t=plText(w);return t?'<p class="'+(cls||'pl')+'">'+esc(t)+'</p>':''}
+// CEFR level of each built-in word and verb. Job packs count as B1, idioms as B2; your own words have no level.
+var WLV={"b0":"A1","b1":"A1","b2":"A1","b3":"A1","b4":"A1","b5":"A1","b6":"A1","b7":"A1","b8":"A1","b9":"A1","b10":"A1","b11":"A1","b12":"A1","b13":"A1","b14":"A1","b15":"A1","b16":"A2","b17":"A1","b18":"A1","b19":"A1","b20":"A1","b21":"A2","b22":"A2","b23":"A1","b24":"A2","b25":"A2","b26":"A1","b27":"A1","b28":"A1","b29":"A1","b30":"A2","b31":"A2","b32":"A1","b33":"A1","b34":"A1","b35":"A1","b36":"A1","b37":"A1","b38":"A1","b39":"A2","b40":"A1","b41":"A1","b42":"A2","b43":"A1","b44":"A1","b45":"A1","b46":"A1","b47":"A1","b48":"A1","b49":"A1","b50":"A1","b51":"A1","b52":"A1","b53":"A1","b54":"A1","b55":"A1","b56":"A1","b57":"A1","b58":"A1","b59":"A1","b60":"A1","b61":"A1","b62":"A1","b63":"A1","b64":"A1","b65":"A1","b66":"A1","b67":"A1","b68":"A1","b69":"A1","b70":"A1","b71":"A1","b72":"A2","b73":"A2","b74":"A2","b75":"A2","b76":"A1","b77":"A1","b78":"A1","b79":"A1","b80":"A1","b81":"A1","b82":"A1","b83":"A1","b84":"A1","b85":"A1","b86":"A2","b87":"A2","b88":"A2","b89":"A1","b90":"A1","b91":"A1","b92":"A1","b93":"A1","b94":"A1","b95":"A1","b96":"A1","b97":"A1","b98":"A1","b99":"A1","b100":"A1","b101":"A1","b102":"A1","b103":"A2","b104":"A2","b105":"B1","b106":"A1","b107":"A2","b108":"A1","b109":"A2","b110":"A2","b111":"A2","b112":"A1","b113":"A1","b114":"A1","b115":"A2","b116":"A1","b117":"A2","b118":"A2","b119":"A1","b120":"A1","b121":"A2","b122":"A2","b123":"A1","b124":"A2","b125":"A1","b126":"A2","b127":"A2","b128":"A2","b129":"B1","b130":"A2","b131":"A1","b132":"B1","b133":"A1","b134":"A2","b135":"A2","b136":"A2","b137":"A2","b138":"A2","b139":"A1","b140":"A2","b141":"A1","b142":"A1","b143":"A1","b144":"A1","b145":"A1","b146":"A1","b147":"A1","b148":"A1","b149":"A1","b150":"A1","b151":"A1","b152":"A2","b153":"A2","b154":"B1","b155":"A1","b156":"A1","b157":"B1","b158":"A1","b159":"A1","b160":"A1","b161":"A1","b162":"A1","b163":"A1","b164":"A1","b165":"A1","b166":"A2","b167":"A2","b168":"A1","b169":"A1","b170":"A1","b171":"A1","b172":"A1","b173":"A1","b174":"A1","b175":"A1","b176":"A1","b177":"A2","b178":"A1","b179":"A1","b180":"A2","b181":"A2","b182":"A2","b183":"A2","b184":"A2","b185":"A2","b186":"A2","b187":"A2","b188":"A2","b189":"A2","b190":"A2","b191":"A2","b192":"A2","b193":"B1","b194":"B1","b195":"A1","b196":"A2","b197":"A2","b198":"A2","b199":"A2","b200":"A2","b201":"A2","b202":"A2","b203":"A2","b204":"A2","b205":"B1","b206":"B1","b207":"B1","b208":"A2","b209":"A2","b210":"A2","b211":"A1","b212":"A1","b213":"A1","b214":"A1","b215":"A1","b216":"A1","b217":"A1","b218":"A1","b219":"A1","b220":"A1","b221":"A1","b222":"A1","b223":"A1","b224":"A1","b225":"A1","b226":"A1","b227":"A1","b228":"A1","b229":"A1","b230":"A1","b231":"A1","b232":"A1","b233":"A2","b234":"A1","b235":"A1","b236":"A1","b237":"A1","b238":"A1","b239":"A2","b240":"A1","b241":"A2","b242":"A2","b243":"B1","b244":"A2","b245":"A2","b246":"A2","b247":"A1","b248":"A2","b249":"B1","b250":"A2","b251":"A2","b252":"A2","b253":"B1","b254":"B1","b255":"A1","b256":"A1","b257":"A1","b258":"A1","b259":"A1","b260":"A1","b261":"A1","b262":"A1","b263":"A1","b264":"A1","b265":"A1","b266":"B1","b267":"A1","b268":"A1","b269":"A1","b270":"A1","b271":"A1","b272":"A1","b273":"A1","b274":"A2","b275":"A1","b276":"A1","b277":"A1","b278":"A2","b279":"A1","b280":"A1","b281":"A1","b282":"A1","b283":"A1","b284":"A2","b285":"A1","b286":"A1","b287":"A1","b288":"A1","b289":"A1","b290":"A1","b291":"A1","b292":"A1","b293":"A1","b294":"A1","b295":"A1","b296":"A1","b297":"A2","b298":"A1","b299":"A1","b300":"A1","b301":"A1","b302":"A1","b303":"A2","b304":"A2","b305":"A1","b306":"A1","b307":"A1","b308":"A1","b309":"A2","b310":"A1","b311":"A1","b312":"A1","b313":"A1","b314":"A2","b315":"A2","b316":"A2","b317":"A1","b318":"A1","b319":"A1","b320":"A1","b321":"A1","b322":"A2","b323":"A1","b324":"A2","b325":"A1","b326":"A1","b327":"A1","b328":"A2","b329":"A2","b330":"A1","b331":"A1","b332":"A1","b333":"A1","b334":"A1","b335":"A1","b336":"A1","b337":"A1","b338":"A1","b339":"A1","b340":"A1","b341":"A2","b342":"B1","b343":"A1","b344":"A1","b345":"A2","b346":"A2","b347":"A2","b348":"A2","b349":"A2","b350":"A2","b351":"B1","b352":"A2","b353":"A2","b354":"A1","b355":"A1","b356":"A1","b357":"A1","b358":"A1","b359":"A1","b360":"A1","b361":"A1","b362":"A1"};
+var VLV={"sein":"A1","haben":"A1","werden":"A2","gehen":"A1","kommen":"A1","fahren":"A1","essen":"A1","trinken":"A1","sprechen":"A1","sehen":"A1","lesen":"A1","geben":"A1","nehmen":"A1","helfen":"A1","schlafen":"A1","laufen":"A1","finden":"A1","schreiben":"A1","bleiben":"A1","wissen":"A1","kennen":"A1","denken":"A2","bringen":"A2","fliegen":"A1","beginnen":"A2","vergessen":"A2","verstehen":"A1","stehen":"A2","sitzen":"A2","liegen":"A2","heißen":"A1","tragen":"A2","waschen":"A2","treffen":"A2","schließen":"A2","gewinnen":"B1","machen":"A1","lernen":"A1","arbeiten":"A1","wohnen":"A1","kaufen":"A1","spielen":"A1","brauchen":"A1","fragen":"A1","sagen":"A1","hören":"A1","kochen":"A1","suchen":"A1","warten":"A1","reisen":"A1","lieben":"A1","zeigen":"A2","öffnen":"A2","antworten":"A1","besuchen":"A1","bezahlen":"A1","studieren":"A1","glauben":"A2","erklären":"A2","benutzen":"A2","aufstehen":"A1","anrufen":"A1","einkaufen":"A1","anfangen":"A1","mitkommen":"A1","fernsehen":"A1","aufmachen":"A2","zumachen":"A2","ankommen":"A1","abfahren":"A1","einladen":"A1","vorbereiten":"B1","können":"A1","müssen":"A1","wollen":"A1","dürfen":"A2","sollen":"A2","mögen":"A1","analysieren":"B2","berechnen":"B2","programmieren":"B2","speichern":"B1","testen":"B1","entwickeln":"B1","präsentieren":"B1","vergleichen":"B1","messen":"B1","schätzen":"B1","vorhersagen":"B2","herunterladen":"A2","teilnehmen":"A2","verschieben":"B1"};
+function wLevel(w){var c=String(w.id).charAt(0);return c==='b'?(WLV[w.id]||'B1'):c==='j'?'B1':c==='u'?'B2':null}
+function vLevel(v){return VLV[v.inf]||'B1'}
 function allWordsRaw(){return BASE.concat([].concat.apply([],JOBS.map(function(j){return JOB_WORDS[j.key]||[]})),IDIOMS)}
 function allWords(){return BASE.concat(JOB_WORDS[S.job]||[],typeof IDIOMS!=='undefined'&&unlocked('idioms')?IDIOMS:[],S.custom)}
 function byId(id){return allWords().find(function(w){return w.id===id})}
-function pool(){return allWords().filter(function(w){return ui.cat==='All'||w.cat===ui.cat})}
+function pool(){var p=allWords().filter(function(w){return ui.cat==='All'||w.cat===ui.cat});if(ui.lvf){var f=p.filter(function(w){return wLevel(w)===ui.lvf});if(f.length)p=f}return p}
+function lvfBar(){return ui.lvf?'<p class="note">'+tl('Only LV content, for your path goal.').replace('LV',ui.lvf)+' <button class="link" data-a="lvfx">'+tl('Practice everything')+'</button></p>':''}
 function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function ac(a){return a?'a-'+a:'a-none'}
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
@@ -260,7 +266,7 @@ function startQuiz(){
 function vQuiz(){
   var q=ui.quiz, h='';
   if(q&&q.ch){if(q.i>=q.qs.length) return chDone(q)}
-  else {var g=jobGate(); if(g) return chips()+g; h=chips()+jobMeta()}
+  else {var g=jobGate(); if(g) return chips()+g; h=chips()+jobMeta()+lvfBar()}
   if(!q){
     h+=tl('<div class="panel"><h2>Quick quiz</h2><p class="sub">Up to 10 questions from the selected category.</p><div class="seg" role="group" aria-label="Quiz type">');
     h+='<button data-a="mode" data-v="meaning" aria-pressed="'+(ui.mode==='meaning')+'">Meanings</button>';
@@ -722,7 +728,7 @@ function vnorm(x){
 // In A1 only present-tense answers count toward mastering a verb; past tenses count from A2
 function vCounts(t){return t==='pres'||LV.indexOf(ruleLevel())>=1}
 function vbox(v){return (S.verbs&&S.verbs[v.inf])||0}
-function vPool(){return VERBS.filter(function(v){return (ui.vg==='all'||v.g===ui.vg)&&(!ui.vp||ui.vp==='all'||pType(v)===ui.vp)})}
+function vPool(){var p=VERBS.filter(function(v){return (ui.vg==='all'||v.g===ui.vg)&&(!ui.vp||ui.vp==='all'||pType(v)===ui.vp)});if(ui.lvf){var f=p.filter(function(v){return vLevel(v)===ui.lvf});if(f.length)p=f}return p}
 // Verbs grouped by how they build the Perfekt
 var PTYPES=[['all',tl('All')],['hreg','haben + ge…t'],['hirr','haben + ge…en'],['sein','sein + …'],['sep',tl('Separable')+' (…ge…)'],['noge',tl('No ge-')]];
 var PDESC={hreg:tl('haben + ge + stem + t. Regular and mixed verbs: hat gemacht, hat gebracht.'),hirr:tl('haben + ge + stem + en, often with a vowel change: hat gesprochen, hat gegessen.'),sein:tl('sein for movement from A to B or a change of state, plus sein and bleiben: ist gegangen, ist geblieben.'),sep:tl('Separable verbs with haben: ge- goes between the prefix and the verb: hat eingekauft, hat angerufen.'),noge:tl('No ge- for verbs ending in -ieren or starting with be-, ver-, er-, ent-, zer-: hat studiert, hat verstanden.')};
@@ -891,6 +897,7 @@ function vVerbs(){
     if(ui.vl) return vStudy();
     if(ui.vlesson) return vLesson();
     h+=subnav('vmode',ui.vmode,[['learn',tl('Learn')],['drill',tl('Practice')]]);
+    h+=lvfBar();
     if(ui.vmode==='learn') return h+vLearnHome();
     var p=vPool(), m=p.filter(function(v){return vbox(v)>=3}).length;
     h+=tl('<div class="chips" role="group" aria-label="Verb group">')+VGROUPS.map(function(g){return '<button class="chip" data-a="vgroup" data-v="'+g[0]+'" aria-pressed="'+(ui.vg===g[0])+'">'+g[1]+'</button>'}).join('')+'</div>'+vpChips();
@@ -1221,16 +1228,18 @@ function halfN(){return allWords().filter(function(w){var k=S.know&&S.know[w.id]
 function learnedN(){return allWords().filter(function(w){return isMastered(w.id)}).length}
 function verbsN(){return VERBS.filter(function(v){return vbox(v)>=3}).length}
 function pathGoals(lv){
-  var i=LV.indexOf(lv), tot=allWords().length;
-  var W=[60,150,260,380][i], V=[15,35,60,85][i], C=[0,20,50,100][i];
+  var i=LV.indexOf(lv);
+  // Only this level's own content counts: its words, its verbs, its conversations, stories, case answers and rule practices
+  var ws=allWords().filter(function(w){return wLevel(w)===lv}), vs=VERBS.filter(function(v){return vLevel(v)===lv});
+  var W=Math.max(1,Math.min([60,90,110,120][i],Math.round(ws.length*0.8))), V=Math.max(1,Math.min([15,20,25,25][i],Math.round(vs.length*0.8))), C=[0,20,30,50][i];
   var convs=CONVS.filter(function(c){return c.lv===lv}), st=STORIES.filter(function(s){return s.lv===lv});
   var g=[
-    {t:tl('Master ')+Math.min(W,tot)+tl(' words'),have:learnedN(),need:Math.min(W,tot),go:'write'},
-    {t:tl('Master ')+V+tl(' verbs'),have:verbsN(),need:V,go:'verbs'},
+    {t:tl('Master N LV words').replace('N',W).replace('LV',lv),have:ws.filter(function(w){return isMastered(w.id)}).length,need:W,go:'write'},
+    {t:tl('Master N LV verbs').replace('N',V).replace('LV',lv),have:vs.filter(function(v){return vbox(v)>=3}).length,need:V,go:'verbs'},
     {t:tl('Finish the ')+lv+tl(' conversations'),have:convs.filter(function(c){return S.conv&&S.conv[c.id]}).length,need:convs.length,go:'conv'+lv},
     {t:tl('Read the ')+lv+tl(' stories'),have:st.filter(function(s){return S.read&&S.read[s.id]}).length,need:st.length,go:'read'}
-  ];
-  if(C) g.push({t:C+tl(' right answers in Cases'),have:S.cs||0,need:C,go:'case'});
+  ].filter(function(x,k){return k>1||(k===0?ws.length:vs.length)});
+  if(C) g.push({t:C+tl(' right answers in Cases'),have:(S.csl||{})[lv]||0,need:C,go:'case'});
   var ru=rpUnits(lv); if(ru.length) g.push({t:tl('Pass the ')+lv+tl(' rule practices'),have:ru.filter(rpPassed).length,need:ru.length,go:'rules'});
   return g;
 }
@@ -1534,13 +1543,13 @@ var A={
 
   lsub:function(d){ui.lsub=ui.tab=d.v;render()},
   go:function(d){
-    var v=d.v;
+    var v=d.v; ui.lvf=['write','verbs','case'].indexOf(v)>-1?curLevel():null;
     if(v==='place'){startPlace()}
     else if(v==='learn'){ui.tab=ui.lsub='learn'}
-    else if(v==='verbs'){ui.tab='verbs'}
+    else if(v==='verbs'){ui.tab='verbs';ui.vmode='drill';ui.vq=null;ui.vg='all';ui.vp='all'}
     else if(v==='read'){ui.tab=ui.lsub='read';ui.rd=null;ui.rdl=curLevel()||'A1'}
-    else if(v==='write'){ui.tab='quiz';ui.mode='write';ui.quiz=null;ui.msg=''}
-    else if(v==='case'){ui.tab='quiz';ui.mode='case';ui.quiz=null;ui.msg=''}
+    else if(v==='write'){ui.tab='quiz';ui.mode='write';ui.quiz=null;ui.msg='';ui.cat='All'}
+    else if(v==='case'){ui.tab='quiz';ui.mode='case';ui.quiz=null;ui.msg='';ui.cat='All'}
     else if(v==='rules'){ui.tab=ui.msub='rules';ui.dr=null}
     else if(v.indexOf('conv')===0){ui.tab=ui.wsub='conv';ui.cv=null;ui.cvl=v.slice(4)}
     render();document.getElementById('main').scrollTop=0;
@@ -1550,6 +1559,7 @@ var A={
   drgo:function(d){var k=d.v||'contr';ui.dr={k:k,qs:shuffle(DRILLS[k].items).slice(0,10).map(function(c){return {q:c[0],ans:c[1],opts:shuffle([c[1]].concat(c[2])),why:c[3]}}),i:0,ok:0,picked:null};ui.tab=ui.msub='rules';render();document.getElementById('main').scrollTop=0},
   drpick:function(d){var q=ui.dr;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];var ok=d.v===c.ans;sfx(ok);if(ok)q.ok++;tick();save();render()},
   drnext:function(){var q=ui.dr;q.i++;q.picked=null;if(q.i>=q.qs.length){S.rp=S.rp||{};S.rp[q.k]=Math.max(S.rp[q.k]||0,q.ok);save()}render();document.getElementById('main').scrollTop=0},
+  lvfx:function(){ui.lvf=null;ui.quiz=null;ui.vq=null;render()},
   rshow:function(d){ui.rshow=ui.rshow||{};ui.rshow[d.v]=true;render()},
   vlgo:function(){ui.dr=null;ui.vmode='learn';ui.tab='verbs';ui.vlesson=true;render();document.getElementById('main').scrollTop=0},
   drx:function(){ui.dr=null;render();document.getElementById('main').scrollTop=0},
@@ -1656,7 +1666,7 @@ var A={
     q.picked=d.v;
     var cq=q.qs[q.i], okk=d.v===cq.ans;
     if(okk) q.score++;
-    if(cq.mode==='case'){mist('case:'+cq.w.id+'|'+cq.ti,okk);if(okk)S.cs=(S.cs||0)+1}
+    if(cq.mode==='case'){mist('case:'+cq.w.id+'|'+cq.ti,okk);if(okk){S.cs=(S.cs||0)+1;var cl=curLevel();if(cl){S.csl=S.csl||{};S.csl[cl]=(S.csl[cl]||0)+1}}}
     else mist((cq.mode==='article'?'art:':'mean:')+cq.w.id,okk);
     tick(); render();
   },
