@@ -1279,7 +1279,7 @@ function vQuiz(){
   });
   h+='</div>';
   if(q.picked!==null) h+=fbk(q.picked===cur.ans,cur.mode==='article'?cur.ans+' '+cur.w.de:cur.ans);
-  if(q.picked!==null&&cur.mode==='article') h+=ruleHtml(cur.w)+(q.picked!==cur.ans?ruleLink('go','rules'):'');
+  if(q.picked!==null&&cur.mode==='article') h+=ruleHtml(cur.w)+(q.picked!==cur.ans?ruleLink('go','rules','details.rule.a-'+cur.w.art):'');
   if(q.picked!==null) h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   return h;
 }
@@ -1294,7 +1294,7 @@ function vWrite(q,cur){
     h+=tl('<button class="link" data-a="wskip">I don’t know</button>');
   } else {
     h+='<div class="gres '+ac(w.art)+'"><p><b>'+(r.ok?(r.typo?tl('Correct, with a small typo. Type it exactly to count toward Mastered.'):tl('Correct!')):(q.picked?(r.note||tl('Not quite.'))+tl(' You wrote “')+esc(q.picked)+'”.':tl('Here is the answer.')))+'</b></p>'+
-      '<div class="exrow" style="margin-top:4px"><p class="trs"><b>'+esc(wordKey(w))+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(wordKey(w))+tl('" aria-label="Pronounce">')+ICON+'</button></div>'+plHtml(w,'pl small')+ruleHtml(w)+(w.art&&!r.ok&&q.picked&&norm(q.picked).split(' ')[0]!==norm(w.art)?ruleLink('go','rules'):'')+'</div>';
+      '<div class="exrow" style="margin-top:4px"><p class="trs"><b>'+esc(wordKey(w))+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(wordKey(w))+tl('" aria-label="Pronounce">')+ICON+'</button></div>'+plHtml(w,'pl small')+ruleHtml(w)+(w.art&&!r.ok&&q.picked&&norm(q.picked).split(' ')[0]!==norm(w.art)?ruleLink('go','rules','details.rule.a-'+w.art):'')+'</div>';
     h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
   return h;
@@ -1309,7 +1309,7 @@ function vCase(q,cur){
   h+='</div>';
   if(done){
     var full=parts[0]+cur.ans+parts[1];
-    h+='<div class="gres '+ac(cur.w.art)+'" style="margin-top:12px"><p><b>'+CASE_NAME[cur.cs]+'</b></p><p>'+esc(cur.why)+'</p><div class="exrow"><p class="ex">'+esc(full)+'</p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce sentence">')+ICON+'</button></div>'+(q.picked!==cur.ans?ruleLink('go','rules'):'')+'</div>';
+    h+='<div class="gres '+ac(cur.w.art)+'" style="margin-top:12px"><p><b>'+CASE_NAME[cur.cs]+'</b></p><p>'+esc(cur.why)+'</p><div class="exrow"><p class="ex">'+esc(full)+'</p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce sentence">')+ICON+'</button></div>'+(q.picked!==cur.ans?ruleLink('go','rules','#rf-cases'):'')+'</div>';
     h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
   return h;
@@ -1936,7 +1936,7 @@ function vLesson(){
   var t=function(rows){return '<div class="vtw"><table class="vt"><tbody>'+rows.map(function(r){return '<tr><th>'+r[0]+'</th><td>'+r[1]+'</td><td>'+(r[2]||'')+'</td></tr>'}).join('')+'</tbody></table></div>'};
   var ex=function(s){return '<div class="exrow"><p class="ex">'+esc(s)+'</p><button class="icon" data-a="vsay" data-t="'+esc(s)+tl('" aria-label="Pronounce">')+ICON+'</button></div>'};
   var SECS=[], SECLV=['A1','A1','A1','A1','A2','A2','B1','A1'];
-  var sec=function(title,body,open){SECS.push({lv:SECLV[SECS.length],t:title.replace(/^\d · /,''),b:body,o:open});return ''};
+  var sec=function(title,body,open){SECS.push({k:SECS.length,lv:SECLV[SECS.length],t:title.replace(/^\d · /,''),b:body,o:open});return ''};
   var h=tl('<div class="qtop"><button class="link exit" data-a="vlesson">✕ Close</button></div><h2 class="st">How German verbs work</h2>')+'<p class="sub">'+tl('Short lessons, ordered by level. Open one, read the examples and tap 🔊 to hear them.')+'</p>';
   h+=sec(tl('1 · Present tense: the endings'),tl('<p class="sub" style="margin:6px 0 0">Take the infinitive, remove <b>-en</b> to get the stem (mach<b>en</b> → mach-), then add an ending for each person.</p>')+
     t([['ich','mach<b>e</b>','-e'],['du','mach<b>st</b>','-st'],['er/sie/es','mach<b>t</b>','-t'],['wir','mach<b>en</b>','-en'],['ihr','mach<b>t</b>','-t'],['sie/Sie','mach<b>en</b>','-en']])+
@@ -1978,8 +1978,9 @@ function vLesson(){
     var ss=SECS.filter(function(x){return x.lv===lv}), dk=VDRILL[lv];
     if(!ss.length&&!dk) return;
     h+=lvHead(lv,i,ci);
-    if(i>ci&&!(ui.rshow&&ui.rshow[lv])){n+=ss.length;h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV lessons anyway').replace('LV',lv)+'</button>';return}
-    ss.forEach(function(x){n++;h+='<details class="rule a-none"'+(x.o&&i===ci?' open':'')+'><summary><span>'+n+' · '+x.t+'</span></summary><div class="rule-body">'+x.b+'</div></details>'});
+    var fx=ss.some(function(x){return x.k===ui.vlFocus});
+    if(i>ci&&!fx&&!(ui.rshow&&ui.rshow[lv])){n+=ss.length;h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV lessons anyway').replace('LV',lv)+'</button>';return}
+    ss.forEach(function(x){n++;var fo=x.k===ui.vlFocus;h+='<details class="rule a-none"'+(fo?' id="vlf"':'')+((ui.vlFocus==null?x.o&&i===ci:fo)?' open':'')+'><summary><span>'+n+' · '+x.t+'</span></summary><div class="rule-body">'+x.b+'</div></details>'});
     if(dk) h+=rcard(dk,true);
   });
   h+=tl('<button class="btn wide" data-a="vlesson">Back to verbs</button>');
@@ -2021,9 +2022,9 @@ function startVlPractice(vs){
 }
 function vVerbs(){
   var q=ui.vq, h='';
+  if(ui.vlesson) return vLesson();
   if(!q){
     if(ui.vl) return vStudy();
-    if(ui.vlesson) return vLesson();
     h+=subnav('vmode',ui.vmode,[['learn',tl('Learn')],['drill',tl('Practice')]]);
     h+=lvfBar();
     if(ui.vmode==='learn') return h+vLearnHome();
@@ -2053,7 +2054,7 @@ function vVerbs(){
   } else {
     h+='<div class="gres '+(r.ok?'a-das':'a-bad')+'"><p><b>'+(r.ok?tl('Correct!'):(r.given?tl('Not quite. You wrote “')+esc(r.given)+'”.':tl('Here is the answer.')))+'</b></p>';
     var full=PERS[c.p].split('/')[0]+' '+ans;
-    h+='<div class="exrow"><p class="vans">'+PERS[c.p].split('/')[0]+' <b>'+esc(ans)+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce ')+esc(full)+'">'+ICON+'</button></div>'+(r.ok?'':'<p class="rhint">✎ '+esc(verbWhy(v,c.t))+'</p>'+ruleLink('vlgo'))+'</div>'+vTable(v,c);
+    h+='<div class="exrow"><p class="vans">'+PERS[c.p].split('/')[0]+' <b>'+esc(ans)+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce ')+esc(full)+'">'+ICON+'</button></div>'+(r.ok?'':'<p class="rhint">✎ '+esc(verbWhy(v,c.t))+'</p>'+ruleLink('vlgo',vLessonFor(v,c.t)))+'</div>'+vTable(v,c);
     h+='<button class="btn wide" data-a="vnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
   return h;
@@ -2201,7 +2202,9 @@ function ruleFor(w){
   return R('none',tl('No rule: learn this one by heart'));
 }
 function ruleHtml(w){var r=ruleFor(w);return r?'<p class="rhint r-'+r.kind+'">'+(r.kind==='ok'?'✓ ':r.kind==='ex'?'⚠ ':'✎ ')+esc(r.text)+'</p>':''}
-function ruleLink(a,v){return '<button class="link rlink" data-a="'+a+'"'+(v?' data-v="'+v+'"':'')+'>'+tl('See the rule →')+'</button>'}
+function ruleLink(a,v,f){return '<button class="link rlink" data-a="'+a+'"'+(v!=null?' data-v="'+v+'"':'')+(f?' data-f="'+f+'"':'')+'>'+tl('See the rule →')+'</button>'}
+// Which verb lesson explains a form (index in lesson order: 0 endings, 1 stem changes, 2 separable, 3 modal, 4 simple past, 5 perfect)
+function vLessonFor(v,t){if(t==='past')return 4;if(t==='perf')return 5;if(v.g==='mod')return 3;if(vSplit(v).pre)return 2;return vIrr(v).pres.some(Boolean)?1:0}
 function verbWhy(v,t){var n=vNote(v), sep=vSplit(v).pre?1:0;return t==='pres'?n[0]:t==='past'?n[1+sep]:n[2+sep]}
 // Preposition + article contractions (im, am, zum…)
 var CONTR=[['Ich bin ___ Büro.','im',['in','ins','am'],'in + dem = im. Where? → Dativ.'],['Ich gehe heute ___ Kino.','ins',['im','in','zum'],'in + das = ins. Where to? → Akkusativ.'],
@@ -2276,7 +2279,7 @@ function vRules(){
     h+=lvHead(lv,i,ci);
     if(i>ci&&!(ui.rshow&&ui.rshow[lv])){h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV rules anyway').replace('LV',lv)+'</button>';return}
     if(lv==='A1') h+=genderRules()+rcard('gender')+rcard('vA1');
-    if(lv==='A2') h+=casesRule()+contrRule()+rcard('contr')+pluralRule()+rcard('plural')+rcard('vA2');
+    if(lv==='A2') h+=casesRule().replace('<details class="rule a-none"','<details id="rf-cases" class="rule a-none"')+contrRule()+rcard('contr')+pluralRule()+rcard('plural')+rcard('vA2');
     if(lv==='B1') h+=rcard('vB1');
     if(lv==='B2') h+='<p class="sub">'+tl('No new rules for B2 yet. Keep going with the conversations and stories.')+'</p>';
   });
@@ -2723,9 +2726,10 @@ var A={
     else if(v==='read'){ui.tab=ui.lsub='read';ui.rd=null;ui.rdl=curLevel()||'A1'}
     else if(v==='write'){ui.tab='quiz';ui.mode='write';ui.quiz=null;ui.msg='';ui.cat='All'}
     else if(v==='case'){ui.tab='quiz';ui.mode='case';ui.quiz=null;ui.msg='';ui.cat='All'}
-    else if(v==='rules'){ui.tab=ui.msub='rules';ui.dr=null}
+    else if(v==='rules'){ui.tab=ui.msub='rules';ui.dr=null;ui.rFocus=d.f||null;if(d.f==='#rf-cases'){ui.rshow=ui.rshow||{};ui.rshow.A2=true}}
     else if(v.indexOf('conv')===0){ui.tab=ui.wsub='conv';ui.cv=null;ui.cvl=v.slice(4)}
     render();document.getElementById('main').scrollTop=0;
+    if(ui.rFocus){var el=document.querySelector(ui.rFocus);ui.rFocus=null;if(el){if(el.tagName==='DETAILS')el.open=true;el.scrollIntoView({block:'start'})}}
   },
   sfxt:function(){S.sfx=S.sfx===false;save();render();if(S.sfx)sfx(true)},
   setgoal:function(d){S.goal=+d.v;save();render()},
@@ -2734,7 +2738,7 @@ var A={
   drnext:function(){var q=ui.dr;q.i++;q.picked=null;if(q.i>=q.qs.length){S.rp=S.rp||{};S.rp[q.k]=Math.max(S.rp[q.k]||0,q.ok);save()}render();document.getElementById('main').scrollTop=0},
   lvfx:function(){ui.lvf=null;ui.quiz=null;ui.vq=null;render()},
   rshow:function(d){ui.rshow=ui.rshow||{};ui.rshow[d.v]=true;render()},
-  vlgo:function(){ui.dr=null;ui.vmode='learn';ui.tab='verbs';ui.vlesson=true;render();document.getElementById('main').scrollTop=0},
+  vlgo:function(d){ui.dr=null;ui.vlBack=ui.tab!=='verbs'?ui.tab:null;ui.vlFocus=d&&d.v!=null&&d.v!==''?+d.v:null;if(!ui.vq)ui.vmode='learn';ui.tab='verbs';ui.vlesson=true;render();var el=document.getElementById('vlf');if(el)el.scrollIntoView({block:'start'});else document.getElementById('main').scrollTop=0},
   drx:function(){ui.dr=null;render();document.getElementById('main').scrollTop=0},
   plpick:function(d){var q=ui.pl;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];sfx(d.v===c.ans);if(d.v===c.ans)q.right[c.lv]=(q.right[c.lv]||0)+1;render()},
   plnext:function(){var q=ui.pl;q.i++;q.picked=null;if(q.i>=q.qs.length){S.place={lvl:placeResult(q.right),at:today()};save()}render();document.getElementById('main').scrollTop=0},
@@ -2930,7 +2934,7 @@ var A={
     q.res={ok:false,given:''}; S.verbs=S.verbs||{}; if(vCounts(c.t)) S.verbs[c.v.inf]=0; mist('verb:'+c.v.inf+'|'+c.t+'|'+c.p,false); render();
   },
   vmode:function(d){ui.vmode=d.v;render()},
-  vlesson:function(){ui.vlesson=!ui.vlesson;render();document.getElementById('main').scrollTop=0},
+  vlesson:function(){ui.vlesson=!ui.vlesson;if(!ui.vlesson){ui.vlFocus=null;if(ui.vlBack){ui.tab=ui.vlBack;ui.vlBack=null}}render();document.getElementById('main').scrollTop=0},
   vlstart:function(d){var vs=d.r?shuffle(vPool()).slice(0,5):vlPool().slice(0,5);if(!vs.length)return;ui.vq=null;ui.vl={vs:vs,i:0};render();document.getElementById('main').scrollTop=0},
   vlstudy:function(){var vs=ui.vq&&ui.vq.learn;if(!vs)return;ui.vq=null;ui.vl={vs:vs,i:0};render();document.getElementById('main').scrollTop=0},
   vlnext:function(){ui.vl.i++;render();document.getElementById('main').scrollTop=0},
