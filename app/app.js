@@ -411,7 +411,7 @@ function vTrans(){
     var label=r.perfect?tl('Perfect!'):r.pct>=0.75?tl('Almost right'):r.u.length?tl('Not quite'):tl('Here is the answer');
     var capNote=r.u.length&&r.t.some(function(t,k){var u=r.u[r.tp[k]];return k>0&&u&&/^[A-ZÄÖÜ]/.test(t.raw)&&!/^[A-ZÄÖÜ]/.test(u.raw)});
     if(capNote) label+=tl(' Remember that German nouns start with a capital letter.');
-    h+='<div class="gres '+(r.perfect?'a-das':r.pct>=0.75?'a-der':'a-die')+'"><p><b>'+label+'</b></p>';
+    h+='<div class="gres '+(r.perfect?'a-das':r.pct>=0.75?'a-der':'a-bad')+'"><p><b>'+label+'</b></p>';
     if(r.u.length) h+=tl('<p class="trl">Your answer</p><p class="trs">')+r.u.map(function(t,k){return '<span class="tw '+r.um[k]+'">'+esc(t.raw)+'</span>'}).join(' ')+'</p>';
     h+=tl('<p class="trl">Correct</p><div class="exrow"><p class="trs">')+r.t.map(function(t,k){return '<span class="tw '+(r.u.length?r.tm[k]:'')+'">'+esc(t.raw)+'</span>'}).join(' ')+'</p><button class="icon" data-a="say" data-id="'+w.id+tl('" data-ex="1" aria-label="Pronounce sentence">')+ICON+'</button></div>';
     if(r.u.length&&!r.perfect) h+=tl('<p class="trkey"><span class="tw miss">red</span> missing or wrong · <span class="tw near">yellow</span> small typo · <span class="tw extra">crossed out</span> not needed</p>');
@@ -588,7 +588,7 @@ function vWotd(){
   var at=wotdUnlockAt(st.seen), open=Date.now()>=at;
   var card='<div class="vhead"><div class="qprompt">'+esc(w.art+' '+w.de)+'</div><button class="icon" data-a="vsay" data-t="'+esc(w.art+' '+w.de)+tl('" aria-label="Pronounce ')+esc(w.de)+'">'+ICON+'</button></div><p class="ghint" style="margin-top:0">'+esc(w.en)+'</p><p class="sub">'+esc(w.why)+'</p><div class="exrow"><p class="ex">'+esc(w.ex)+'</p><button class="icon" data-a="vsay" data-t="'+esc(w.ex)+tl('" aria-label="Pronounce sentence">')+ICON+'</button></div><p class="exen">'+esc(w.exEn)+'</p>';
   if(st.res){
-    h+=card+'<div class="gres '+(st.res.ok?'a-das':'a-die')+'"><p><b>'+(st.res.ok?tl('You remembered it! +15 XP'):tl('Not quite. You wrote “')+esc(st.res.given)+'”.')+'</b></p></div>';
+    h+=card+'<div class="gres '+(st.res.ok?'a-das':'a-bad')+'"><p><b>'+(st.res.ok?tl('You remembered it! +15 XP'):tl('Not quite. You wrote “')+esc(st.res.given)+'”.')+'</b></p></div>';
   } else if(open){
     h+=tl('<h2>Do you still remember it?</h2><p class="sub">Type today’s German word for “')+esc(w.en)+tl('”, with its article.</p><div class="bar"><input id="wd-in" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="der / die / das …" aria-label="Word of the day"><button class="btn small" data-a="wdcheck">Check</button></div><p class="sub" style="margin-top:8px">Starts with ')+esc(w.art+' '+w.de.charAt(0))+'…</p>';
     return h+'</div>';
@@ -688,7 +688,7 @@ function vConv(){
   }
   if(r.loading) return h+tl('<div class="gres"><p class="trl">Your answer</p><p class="trs">')+esc(q.ans)+tl('</p><p class="fb">Claude is reading your answer…</p></div>');
   var good=r.ok;
-  h+='<div class="gres '+(good?'a-das':r.skip?'a-die':'a-der')+'"><p><b>'+(r.skip?tl('Here is a possible answer'):good?(r.ai?(tkey(r.corrected||q.ans)===tkey(q.ans)?tl('Perfect!'):tl('Good, with small fixes')):r.perfect?tl('Perfect!'):tl('Good answer')):tl('Not quite'))+'</b></p>';
+  h+='<div class="gres '+(good?'a-das':r.skip?'a-bad':'a-der')+'"><p><b>'+(r.skip?tl('Here is a possible answer'):good?(r.ai?(tkey(r.corrected||q.ans)===tkey(q.ans)?tl('Perfect!'):tl('Good, with small fixes')):r.perfect?tl('Perfect!'):tl('Good answer')):tl('Not quite'))+'</b></p>';
   if(r.ai){
     h+=tl('<p class="trl">Your answer</p><p class="trs">')+esc(q.ans)+'</p>';
     if(r.corrected&&tkey(r.corrected)!==tkey(q.ans)) h+=tl('<p class="trl">Corrected</p><div class="exrow"><p class="trs"><b>')+esc(r.corrected)+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(r.corrected)+tl('" aria-label="Listen">')+ICON+'</button></div>';
@@ -923,7 +923,7 @@ function vVerbs(){
     h+='<div class="bar"><input id="verb-in" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="'+PERS[c.p].split('/')[0]+tl(' …" aria-label="Verb form"><button class="btn small" data-a="vcheck">Check</button></div>');
     h+=tl('<button class="link" data-a="vskip">I don’t know</button>');
   } else {
-    h+='<div class="gres '+(r.ok?'a-das':'a-die')+'"><p><b>'+(r.ok?tl('Correct!'):(r.given?tl('Not quite. You wrote “')+esc(r.given)+'”.':tl('Here is the answer.')))+'</b></p>';
+    h+='<div class="gres '+(r.ok?'a-das':'a-bad')+'"><p><b>'+(r.ok?tl('Correct!'):(r.given?tl('Not quite. You wrote “')+esc(r.given)+'”.':tl('Here is the answer.')))+'</b></p>';
     var full=PERS[c.p].split('/')[0]+' '+ans;
     h+='<div class="exrow"><p class="vans">'+PERS[c.p].split('/')[0]+' <b>'+esc(ans)+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(full)+tl('" aria-label="Pronounce ')+esc(full)+'">'+ICON+'</button></div>'+(r.ok?'':'<p class="rhint">✎ '+esc(verbWhy(v,c.t))+'</p>'+ruleLink('vlgo'))+'</div>'+vTable(v,c);
     h+='<button class="btn wide" data-a="vnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
@@ -1014,7 +1014,7 @@ var RULES=[
  ],warn:tl('Exceptions: das Bier is neuter. Not every -er word is masculine: die Butter, das Fenster, das Zimmer.')},
  {art:'die',name:tl('Feminine'),rules:[
   [tl('Endings -ung, -heit, -keit, -schaft'),'die Zeitung, die Freiheit, die Möglichkeit, die Freundschaft'],
-  ['Endings -ion, -tät, -ur, -ik, -ie','die Information, die Universität, die Kultur, die Musik, die Familie'],
+  [tl('Endings -ion, -tät, -ur, -ik, -ie'),'die Information, die Universität, die Kultur, die Musik, die Familie'],
   [tl('Female people (-in)'),tl('die Lehrerin, die Freundin')],
   [tl('Most nouns ending in -e'),'die Straße, die Lampe, die Küche'],
   [tl('Many trees and flowers'),tl('die Eiche, die Rose')],
@@ -1168,7 +1168,7 @@ function genderRules(){
     tl('<p class="rt">Many common nouns, especially short ones, follow no pattern</p>')+
     tl('<p class="sub" style="margin:6px 0 0">Words like die Post, die Hand or der Tisch don’t match any ending or group above. Nothing in the word tells you the gender, so you have to learn the article together with the word.</p>')+
     tl('<p class="rt">Examples</p><div class="exs">')+exChips(tl('die Post, die Hand, die Zeit, die Stadt, die Nacht, die Bank, der Tisch, der Stuhl, der Weg, der Hund, das Bett, das Buch, das Haus, das Auto'))+'</div>'+
-    tl('<p class="rt">How to learn them</p><p class="sub" style="margin:6px 0 0">Always say the article out loud with the word (“die Post”, not “Post”). Use the colors: blue der, red die, green das. Practice them in the der / die / das quiz.</p>')+
+    tl('<p class="rt">How to learn them</p><p class="sub" style="margin:6px 0 0">Always say the article out loud with the word (“die Post”, not “Post”). Use the colors: blue der, purple die, green das. Practice them in the der / die / das quiz.</p>')+
     tl('<p class="warn">Weak hint: many one-syllable nouns are der (der Tisch, der Weg), but there are lots of exceptions (die Hand, das Bett).</p></div></details>');
   h+=tl('<p class="sub" style="margin:12px 0">Every noun card in Learn and Words shows which rule it follows, or that it has none.</p>');
   h+=tl('<button class="btn wide" data-a="qart">Practice with the article quiz</button>');
