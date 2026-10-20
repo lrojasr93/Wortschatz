@@ -381,41 +381,115 @@ function checkTrans(user,target){
   var pct=Math.max(0,(ok+near*0.5-extra*0.5)/n);
   return {t:t,u:u,tm:tm,um:um,tp:tp,pct:pct,perfect:ok===n&&extra===0&&m===n};
 }
+// Sentences: write, build from word tiles, or say out loud. Uses each word's example sentence, up to your level.
+var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+var MIC='<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+function trm(){return S.trm||'type'}
+function srOk(){return !!SR&&!ui.srOff}
+function trPool(){
+  var p=pool().filter(function(w){return w.ex&&w.exEn}), lv=curLevel();
+  if(!ui.lvf&&lv){var mx=LV.indexOf(lv),f=p.filter(function(w){var l=wLevel(w);return !l||LV.indexOf(l)<=mx});if(f.length>=5)p=f}
+  if(trm()!=='type'){var b=p.filter(function(w){return toks(w.ex).length<=12});if(b.length)p=b}
+  return p;
+}
 function startTrans(){
-  var p=pool().filter(function(w){return w.ex&&w.exEn});
+  var p=trPool();
   if(!p.length){ui.trMsg=tl('This category has no sentences yet. Pick another one.');ui.tr=null;return}
   ui.trMsg='';
   ui.tr={qs:shuffle(p).slice(0,10),i:0,score:0,res:null,ans:'',hint:false};
 }
+// Word tiles for the build mode: the sentence's words shuffled, punctuation hidden so it gives nothing away
+function tiles(q){
+  if(q.tiles) return q.tiles;
+  var raw=q.qs[q.i].ex.split(/\s+/).filter(Boolean), t=raw.map(function(r,k){return {k:k,raw:r,show:r.replace(/^[„“"'(¿¡]+|[.,!?;:…"“”')]+$/g,'')||r}}), m;
+  for(var n=0;n<6;n++){m=shuffle(t);if(m.some(function(x,k){return x.k!==k}))break}
+  q.pick=[]; return (q.tiles=m);
+}
+function trDone(q,v){
+  q.ans=v; q.res=checkTrans(v,q.qs[q.i].ex);
+  if(q.again){sfx(q.res.perfect);return}
+  q.score+=q.res.perfect?1:q.res.pct>=0.75?0.5:0;
+  mist('tr:'+q.qs[q.i].id,q.res.perfect);
+  tick();
+}
+// Say it: the browser's German speech recognition. Where it doesn't exist or the microphone is blocked, you check yourself.
+function listen(){
+  var q=ui.tr; if(!q||q.res||q.listening) return;
+  var r; try{r=new SR()}catch(e){ui.srOff=true;render();return}
+  r.lang='de-DE'; r.interimResults=false; r.maxAlternatives=3; r.continuous=false;
+  q.listening=true; q.srMsg=''; render();
+  r.onresult=function(e){
+    if(ui.tr!==q||q.res) return;
+    var ex=q.qs[q.i].ex, best='', bp=-1, alts=e.results[0];
+    for(var k=0;k<alts.length;k++){var c=checkTrans(alts[k].transcript,ex),p=c.perfect?2:c.pct;if(p>bp){bp=p;best=alts[k].transcript}}
+    q.listening=false; trDone(q,best); render();
+  };
+  r.onerror=function(e){
+    if(ui.tr!==q) return; q.listening=false;
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'||e.error==='network'){ui.srOff=true;q.srMsg=tl('The microphone isn’t available here, so you check yourself.')}
+    else if(e.error==='no-speech') q.srMsg=tl('I didn’t hear anything. Tap the microphone and try again.');
+    else if(e.error!=='aborted') q.srMsg=tl('That didn’t work. Tap the microphone and try again.');
+    render();
+  };
+  r.onend=function(){if(ui.tr===q&&q.listening){q.listening=false;render()}};
+  try{r.start()}catch(e){q.listening=false;ui.srOff=true;render()}
+}
 function vTrans(){
   var g=jobGate(); if(g) return chips()+g;
-  var h=chips()+jobMeta(), q=ui.tr;
+  var h=chips()+jobMeta()+lvfBar(), q=ui.tr, md=trm();
   if(!q){
-    return h+tl('<div class="panel"><h2>Translate sentences</h2><p class="sub">You get an English sentence and write it in German. Up to 10 sentences from the selected category. Small typos count as almost right, and umlauts can be typed as ae, oe, ue and ß as ss.</p><button class="btn wide" data-a="trstart">Start</button>')+(ui.trMsg?'<p class="note">'+esc(ui.trMsg)+'</p>':'')+'</div>';
+    var lv=curLevel();
+    h+='<div class="panel"><h2>'+tl('Translate sentences')+'</h2>'+'<p class="sub">'+tl('Practice whole sentences: you get one in English and answer in German.')+'</p>';
+    h+='<div class="seg trseg" role="group" aria-label="'+tl('How to answer')+'">'+[['type',tl('Type it')],['build',tl('Build it')],['say',tl('Say it')]].map(function(o){return '<button data-a="trm" data-v="'+o[0]+'" aria-pressed="'+(md===o[0])+'">'+o[1]+'</button>'}).join('')+'</div>';
+    h+='<p class="sub" style="margin:12px 0 0">'+(md==='build'?tl('Tap the German words in the right order. Good for learning word order, like the verb in second place.'):md==='say'?(srOk()?tl('Say the sentence out loud in German and the app checks what it hears. Speaking fixes words in memory better than reading them.'):tl('Your browser can’t listen, so you say the sentence out loud, then compare it with the answer and mark it yourself. This practice doesn’t change your progress.')):tl('Type the sentence. Small typos count as almost right, and umlauts can be typed as ae, oe, ue and ß as ss.'))+'</p>';
+    if(lv&&!ui.lvf) h+='<p class="ghint" style="margin-top:8px">'+tl('Sentences up to your level, LV.').replace('LV',lv)+'</p>';
+    return h+'<button class="btn wide" data-a="trstart">'+tl('Start')+'</button>'+(ui.trMsg?'<p class="note">'+esc(ui.trMsg)+'</p>':'')+'</div>';
   }
   if(q.i>=q.qs.length){
     var sc=Math.round(q.score*10)/10;
     if(q.review) return h+doneReview(sc,q.qs.length);
-    return h+tl('<div class="done"><h2>All done</h2><div class="score">')+sc+'/'+q.qs.length+'</div><p class="sub">'+(sc>=q.qs.length*0.8?tl('Great translating.'):sc>=q.qs.length*0.5?tl('Good work. Keep going.'):tl('Try these words in Learn first, then come back.'))+tl('</p><button class="btn wide" data-a="trstart">10 more sentences</button></div>');
+    return h+tl('<div class="done"><h2>All done</h2><div class="score">')+sc+'/'+q.qs.length+'</div><p class="sub">'+(sc>=q.qs.length*0.8?tl('Great translating.'):sc>=q.qs.length*0.5?tl('Good work. Keep going.'):tl('Try these words in Learn first, then come back.'))+tl('</p><button class="btn wide" data-a="trstart">10 more sentences</button>')+'<button class="btn ghost wide" data-a="trexit">'+tl('Change settings')+'</button>'+'</div>';
   }
-  var w=q.qs[q.i], r=q.res;
+  var w=q.qs[q.i], r=q.res, self=md==='say'&&!srOk();
   h+=tl('<div class="qtop"><button class="link exit" data-a="trexit">✕ Exit</button></div>')+'<div class="prog"><i style="width:'+Math.round(q.i/q.qs.length*100)+'%"></i></div>';
-  h+=tl('<p class="qn">Sentence ')+(q.i+1)+tl(' of ')+q.qs.length+tl('</p><p class="qlabel">Write this in German</p>');
+  h+=tl('<p class="qn">Sentence ')+(q.i+1)+tl(' of ')+q.qs.length+'</p><p class="qlabel">'+(md==='build'?tl('Build this in German'):md==='say'?tl('Say this in German'):tl('Write this in German'))+'</p>';
   h+='<p class="gaps">'+esc(w.exEn)+'</p>';
-  if(q.hint||r) h+=tl('<p class="ghint">Key word: ')+(w.art?'<span class="art '+ac(w.art)+'">'+w.art+'</span> ':'')+'<b>'+esc(w.de)+'</b> = '+esc(w.en)+'</p>';
-  if(!r){
+  if(q.hint||r||q.rev) h+=tl('<p class="ghint">Key word: ')+(w.art?'<span class="art '+ac(w.art)+'">'+w.art+'</span> ':'')+'<b>'+esc(w.de)+'</b> = '+esc(w.en)+'</p>';
+  var hintBtn='<button class="btn ghost" data-a="trhint"'+(q.hint?' disabled':'')+'>'+(q.hint?tl('Hint shown'):tl('Hint'))+'</button>';
+  if(!r&&md==='build'){
+    var t=tiles(q), used={};q.pick.forEach(function(k){used[k]=1});
+    h+='<div class="tline" aria-label="'+tl('Your sentence')+'">'+(q.pick.length?q.pick.map(function(k,n){var x=t.filter(function(y){return y.k===k})[0];return '<button class="tile" data-a="tdel" data-v="'+n+'">'+esc(x.show)+'</button>'}).join(''):'<span class="ghint">'+tl('Tap the words below')+'</span>')+'</div>';
+    h+='<div class="tiles">'+t.map(function(x){return '<button class="tile'+(used[x.k]?' used':'')+'" data-a="tadd" data-v="'+x.k+'"'+(used[x.k]?' disabled aria-hidden="true"':'')+'>'+esc(x.show)+'</button>'}).join('')+'</div>';
+    h+='<div class="row">'+hintBtn+'<button class="btn" data-a="trcheck"'+(q.pick.length<t.length?' disabled':'')+'>'+tl('Check')+'</button></div>';
+    h+=tl('<button class="link" data-a="trskip" style="margin-top:12px">Show the answer</button>');
+  } else if(!r&&md==='say'&&!self){
+    h+='<div class="micw"><button class="mic'+(q.listening?' on':'')+'" data-a="trlisten" aria-label="'+tl('Speak')+'"'+(q.listening?' disabled':'')+'>'+MIC+'</button><p class="ghint">'+(q.listening?tl('Listening… say the sentence now.'):tl('Tap the microphone and say it.'))+'</p></div>';
+    if(q.srMsg) h+='<p class="ghint">'+esc(q.srMsg)+'</p>';
+    h+='<div class="row">'+hintBtn+'<button class="btn ghost" data-a="trskip">'+tl('Show the answer')+'</button>'+'</div>';
+  } else if(!r&&self){
+    if(q.srMsg) h+='<p class="ghint">'+esc(q.srMsg)+'</p>';
+    if(!q.rev){
+      h+='<p class="sub">'+tl('Say it out loud in German, then check.')+'</p><div class="row">'+hintBtn+'<button class="btn" data-a="trreveal">'+tl('Check')+'</button>'+'</div>';
+    } else {
+      h+='<div class="gres a-none"><p class="trl">'+tl('Correct')+'</p><div class="exrow"><p class="trs">'+esc(w.ex)+'</p><button class="icon" data-a="say" data-id="'+w.id+tl('" data-ex="1" aria-label="Pronounce sentence">')+ICON+'</button></div></div>';
+      h+='<p class="qlabel">'+tl('Did you say it right?')+'</p><div class="row"><button class="btn ghost" data-a="trself" data-v="0">'+tl('Not quite')+'</button><button class="btn" data-a="trself" data-v="1">'+tl('Yes')+'</button></div>';
+    }
+  } else if(!r){
     h+=tl('<textarea id="tr-in" rows="2" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Your German sentence" aria-label="Your German translation">')+esc(q.ans)+'</textarea>';
-    h+='<div class="row"><button class="btn ghost" data-a="trhint"'+(q.hint?' disabled':'')+'>'+(q.hint?tl('Hint shown'):tl('Hint'))+tl('</button><button class="btn" data-a="trcheck">Check</button></div>');
+    h+='<div class="row">'+hintBtn+'<button class="btn" data-a="trcheck">'+tl('Check')+'</button></div>';
     h+=tl('<button class="link" data-a="trskip" style="margin-top:12px">Show the answer</button>');
   } else {
     var label=r.perfect?tl('Perfect!'):r.pct>=0.75?tl('Almost right'):r.u.length?tl('Not quite'):tl('Here is the answer');
-    var capNote=r.u.length&&r.t.some(function(t,k){var u=r.u[r.tp[k]];return k>0&&u&&/^[A-ZÄÖÜ]/.test(t.raw)&&!/^[A-ZÄÖÜ]/.test(u.raw)});
+    var capNote=md==='type'&&r.u.length&&r.t.some(function(t,k){var u=r.u[r.tp[k]];return k>0&&u&&/^[A-ZÄÖÜ]/.test(t.raw)&&!/^[A-ZÄÖÜ]/.test(u.raw)});
     if(capNote) label+=tl(' Remember that German nouns start with a capital letter.');
     h+='<div class="gres '+(r.perfect?'a-das':r.pct>=0.75?'a-der':'a-bad')+'"><p><b>'+label+'</b></p>';
-    if(r.u.length) h+=tl('<p class="trl">Your answer</p><p class="trs">')+r.u.map(function(t,k){return '<span class="tw '+r.um[k]+'">'+esc(t.raw)+'</span>'}).join(' ')+'</p>';
+    if(r.u.length) h+='<p class="trl">'+(md==='say'?tl('I heard'):tl('Your answer'))+'</p><p class="trs">'+r.u.map(function(t,k){return '<span class="tw '+r.um[k]+'">'+esc(t.raw)+'</span>'}).join(' ')+'</p>';
     h+=tl('<p class="trl">Correct</p><div class="exrow"><p class="trs">')+r.t.map(function(t,k){return '<span class="tw '+(r.u.length?r.tm[k]:'')+'">'+esc(t.raw)+'</span>'}).join(' ')+'</p><button class="icon" data-a="say" data-id="'+w.id+tl('" data-ex="1" aria-label="Pronounce sentence">')+ICON+'</button></div>';
     if(r.u.length&&!r.perfect) h+=tl('<p class="trkey"><span class="tw miss">red</span> missing or wrong · <span class="tw near">yellow</span> small typo · <span class="tw extra">crossed out</span> not needed</p>');
-    h+='</div><button class="btn wide" data-a="trnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next sentence'))+'</button>';
+    if(md==='say'&&r.u.length&&!r.perfect) h+='<p class="ghint">'+tl('Listen to it, then say it again to practice. Your first try is the one that counts.')+'</p>';
+    h+='</div>';
+    if(md==='say'&&!r.perfect&&srOk()) h+='<button class="btn ghost wide" data-a="tragain">'+tl('Say it again')+'</button>';
+    h+='<button class="btn wide" data-a="trnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next sentence'))+'</button>';
   }
   return h;
 }
@@ -1702,15 +1776,21 @@ var A={
   trstart:function(){startTrans();render()},
   trhint:function(){var q=ui.tr,el=document.getElementById('tr-in');if(el)q.ans=el.value;q.hint=true;render();var e2=document.getElementById('tr-in');if(e2)e2.focus()},
   trcheck:function(){
-    var q=ui.tr, el=document.getElementById('tr-in'); if(!q||q.res||!el) return;
+    var q=ui.tr; if(!q||q.res) return;
+    if(trm()==='build'){if(!q.tiles||q.pick.length<q.tiles.length) return; trDone(q,q.pick.map(function(k){return q.qs[q.i].ex.split(/\s+/).filter(Boolean)[k]}).join(' ')); render(); return}
+    var el=document.getElementById('tr-in'); if(!el) return;
     var v=el.value.trim(); if(!v){el.focus();return}
-    q.ans=v; q.res=checkTrans(v,q.qs[q.i].ex);
-    q.score+=q.res.perfect?1:q.res.pct>=0.75?0.5:0;
-    mist('tr:'+q.qs[q.i].id,q.res.perfect);
-    tick(); render();
+    trDone(q,v); render();
   },
-  trskip:function(){var q=ui.tr; if(!q||q.res) return; q.res=checkTrans('',q.qs[q.i].ex);mist('tr:'+q.qs[q.i].id,false);render()},
-  trnext:function(){var q=ui.tr;q.i++;q.res=null;q.ans='';q.hint=false;render();document.getElementById('main').scrollTop=0},
+  trm:function(d){S.trm=d.v;save();ui.trMsg='';render()},
+  tadd:function(d){var q=ui.tr;if(!q||q.res)return;var k=+d.v;if(q.pick.indexOf(k)<0)q.pick.push(k);render()},
+  tdel:function(d){var q=ui.tr;if(!q||q.res)return;q.pick.splice(+d.v,1);render()},
+  trlisten:function(){listen()},
+  tragain:function(){var q=ui.tr;if(!q)return;q.again=true;q.res=null;listen()},
+  trreveal:function(){var q=ui.tr;if(q){q.rev=true;render()}},
+  trself:function(d){var q=ui.tr;if(!q||q.res)return;var ok=d.v==='1';sfx(ok);if(ok)q.score++;tick();q.res=checkTrans(ok?q.qs[q.i].ex:'',q.qs[q.i].ex);q.res.self=1;A.trnext()},
+  trskip:function(){var q=ui.tr; if(!q||q.res) return; q.res=checkTrans('',q.qs[q.i].ex);if(!q.again)mist('tr:'+q.qs[q.i].id,false);render()},
+  trnext:function(){var q=ui.tr;q.i++;q.res=null;q.ans='';q.hint=false;q.tiles=null;q.pick=[];q.rev=false;q.again=false;q.srMsg='';render();document.getElementById('main').scrollTop=0},
   mopen:function(){ui.tab=ui.msub='mist';if(ui.ta){taStop();ui.ta=null}ui.rd=null;ui.quiz=null;ui.tr=null;ui.vq=null;ui.cv=null;ui.confirmClear=false;render();document.getElementById('main').scrollTop=0},
   mclose:function(){ui.tab='learn';render()},
   mclear:function(){if(!ui.confirmClear){ui.confirmClear=true;render();return}S.mist={};save();ui.confirmClear=false;render()},
@@ -1747,7 +1827,7 @@ var A={
   lexit:function(){if(ui.session){ui.session.exited=true;ui.flipped=false};render();document.getElementById('main').scrollTop=0},
   lresume:function(){ui.session=null;render()},
   qexit:function(){ui.quiz=null;render();document.getElementById('main').scrollTop=0},
-  trexit:function(){ui.tr=null;render();document.getElementById('main').scrollTop=0},
+  trexit:function(){ui.tr=null;ui.trMsg='';render();document.getElementById('main').scrollTop=0},
   vexit:function(){ui.vq=null;render();document.getElementById('main').scrollTop=0},
   vgroup:function(d){ui.vg=d.v;render()},
   vptype:function(d){ui.vp=d.v;if(d.v!=='all')ui.vt='perf';render()},
