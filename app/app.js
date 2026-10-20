@@ -1566,13 +1566,35 @@ function vProg(){
     if(lv===cur){var hn=halfN();h+='<p class="sub" style="margin:8px 2px 0">'+tl('A word is mastered when you type it right, with its article, in Practice → Write the word on 2 different days. A wrong answer starts it over.')+(hn?' '+tl('Halfway now: ')+hn+tl(' words (right on one day).'):'')+'</p><p class="sub" style="margin:6px 2px 0">'+tl('A verb is mastered after 3 right answers in a row in Practice → Verb forms, the verb lessons or verb challenges. A wrong answer or a skip starts it over.')+(vCounts('past')?'':' '+tl('In A1 only the present tense counts.'))+'</p>'}
     h+='</div></details>';
   });
-  h+=vStats()+'<div id="bkp">'+vBackup()+'</div>';
+  h+=vStats()+'<div id="bkp">'+vBackup()+'</div>'+vFeedback();
   return h;
 }
 
 // ---- Navigation: Today · Learn · Practice · Challenges · Me. Other screens open from one of these and show a back link. ----
 var HUBS={today:1,path:1,practice:1,chal:1,me:1};
 function dueIds(){var now=Date.now();return allWords().filter(function(w){var g=S.progress[w.id];return g&&g.due<=now}).map(function(w){return w.id})}
+// ---- Feedback: on the web it goes to Supabase (table comentarios, insert only); in Claude to this artifact's shared data ----
+function fbSend(p){
+  if(typeof SB_CFG!=='undefined'&&SB_CFG.url&&SB_CFG.anonKey)
+    return fetch(SB_CFG.url+'/rest/v1/comentarios',{method:'POST',headers:{apikey:SB_CFG.anonKey,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(p)}).then(function(r){if(!r.ok)throw new Error('http '+r.status)});
+  if(CLOUD.db) return CLOUD.db.doc('feedback/'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)).set(p);
+  return Promise.reject(new Error('offline'));
+}
+function vFeedback(){
+  var f=ui.fb||(ui.fb={tipo:'idea',msg:'',email:(typeof CLOUD!=='undefined'&&CLOUD.email)||''});
+  var h='<div class="panel fbp" id="fbp"><h2>'+tl('Send feedback')+'</h2>';
+  if(f.ok) return h+'<p class="sub">'+tl('Thank you! Your comment was sent. It helps us make the app better.')+'</p><button class="btn ghost wide" data-a="fbnew">'+tl('Send another one')+'</button></div>';
+  h+='<p class="sub">'+tl('An idea, something that doesn’t work, or anything else. We read every message.')+'</p>';
+  h+='<div class="seg trseg" role="group" aria-label="'+tl('Type')+'">'+[['idea',tl('Idea')],['error',tl('Problem')],['otro',tl('Other')]].map(function(o){return '<button data-a="fbtipo" data-v="'+o[0]+'" aria-pressed="'+(f.tipo===o[0])+'">'+o[1]+'</button>'}).join('')+'</div>';
+  h+='<textarea id="fb-msg" rows="4" maxlength="2000" placeholder="'+tl('Write your comment')+'" aria-label="'+tl('Your comment')+'" style="margin-top:12px">'+esc(f.msg)+'</textarea>';
+  h+='<input id="fb-email" type="email" autocomplete="email" maxlength="254" placeholder="'+tl('Your email (optional, if you want an answer)')+'" aria-label="'+tl('Your email (optional)')+'" value="'+esc(f.email)+'" style="margin-top:8px;width:100%">';
+  if(f.err) h+='<p class="note">'+esc(f.err)+'</p>';
+  return h+'<button class="btn wide" data-a="fbsend"'+(f.busy?' disabled':'')+' style="margin-top:12px">'+(f.busy?tl('Sending…'):tl('Send'))+'</button></div>';
+}
+// ---- Anonymous, cookieless usage counts (GoatCounter, web only): which screens open and which steps finish ----
+var GCQ=[], _scr='';
+function gc(path,ev){var o={path:'app/'+path,title:path,event:!!ev};try{if(window.goatcounter&&goatcounter.count)goatcounter.count(o);else if(GCQ.length<30)GCQ.push(o)}catch(e){}}
+window.gcFlush=function(){try{GCQ.splice(0).forEach(function(o){goatcounter.count(o)})}catch(e){}};
 function badge(){var b=document.getElementById('pbadge');if(!b)return;var n=mistKeys().length+dueIds().length;b.hidden=!n||!S.onb;b.textContent=n>99?'99+':n}
 function stats(){
   badge();
@@ -1606,6 +1628,7 @@ function render(){
   applySkin(); onbAuto();
   document.body.classList.toggle('onbm',!S.onb);
   var t=ui.tab;
+  var scr=S.onb?(t==='prog'||t==='words'?'me-'+t:t):'welcome-'+(ui.onb||S.onbStep||1); if(scr!==_scr){_scr=scr;gc(scr)}
   m.innerHTML=!S.onb?vOnb():helpHtml()+(t==='today'?vToday():t==='path'?vPath():t==='practice'?vPractice():t==='chal'?vChTab():(t==='prog'||t==='words')?vMe():
     crumb()+(t==='mist'?vMist():t==='learn'?vLearn():t==='read'?vRead():t==='quiz'?vQuiz():t==='translate'?vTrans():t==='conv'?vConv():t==='verbs'?vVerbs():t==='rules'?vRules():vToday()));
   var grp=HUBS[t]?t:(t==='prog'||t==='words')?'me':ui.hub||'today';
@@ -1662,7 +1685,7 @@ function planSteps(){
 function planNext(){return planSteps().find(function(x){return !x.done&&!x.skip})}
 // When a step of today's session ends, mark it and offer the next one
 function planHit(keys){
-  if(ui.planCur&&keys.indexOf(ui.planCur)>-1){todayPlan().done[ui.planCur]=1;save();ui.planBox=ui.planCur;ui.planCur=null}
+  if(ui.planCur&&keys.indexOf(ui.planCur)>-1){todayPlan().done[ui.planCur]=1;save();gc('step-'+ui.planCur,true);ui.planBox=ui.planCur;ui.planCur=null}
   if(!ui.planBox||keys.indexOf(ui.planBox)<0) return '';
   var nx=planNext();
   return '<div class="planbox"><p><b>✓ '+tl('Step done.')+'</b> '+(nx?tl('Next: ')+esc(nx.t):tl('That was the last step for today. 🎉'))+'</p><button class="btn wide" data-a="cont">'+(nx?tl('Continue'):tl('Back to Today'))+'</button></div>';
@@ -1784,6 +1807,7 @@ function vMe(){
   var all=allWords(), m=0, r=0;
   all.forEach(function(w){if(isMastered(w.id))m++;else if(isRecognized(w.id))r++});
   var h='<div class="mehead"><div><b>'+shownStreak()+'</b><span>'+tl('streak')+'</span></div><div><b>'+r+'</b><span>'+tl('recognized')+'</span></div><div><b>'+m+'/'+all.length+'</b><span>'+tl('mastered')+'</span></div></div>';
+  h+='<p class="fbl"><button class="link" data-a="fbgo">💬 '+tl('Send feedback')+'</button></p>';
   return h+(ui.tab==='words'?meNav()+vWords():vProg());
 }
 var A={
@@ -1791,6 +1815,7 @@ var A={
   onbgoal:function(d){S.goal=+d.v;S.onbStep=3;ui.onb=3;save();render()},
   onbjob:function(d){S.job=S.job===d.v?'':d.v;save();render()},
   onbgo:function(d){
+    gc('welcome-done-'+d.v,true);
     delete S.onbStep;ui.onb=null;ui.tab=ui.hub='today';
     // A different language than the one the page loaded with: save, reload once, then open the test there
     if(S.lang&&S.lang!==LANG){S.onbNext=d.v;save();try{cloudPush()}catch(e){}ui.onbWait=true;render();
@@ -1838,6 +1863,18 @@ var A={
     else {ui.tab='conv';ui.cv=null;ui.cvl=curLevel()||'A1'}
     render();document.getElementById('main').scrollTop=0;
   },
+  fbtipo:function(d){ui.fb.tipo=d.v;render()},
+  fbnew:function(){ui.fb=null;render();var el=document.getElementById('fbp');if(el)el.scrollIntoView({block:'start'})},
+  fbsend:function(){
+    var f=ui.fb; if(!f||f.busy) return; var msg=f.msg.trim(), em=f.email.trim();
+    if(!msg){f.err=tl('Write your comment first.');render();return}
+    if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){f.err=tl('That email doesn’t look right. Fix it or leave it empty.');render();return}
+    f.busy=true;f.err='';render();
+    fbSend({mensaje:msg.slice(0,2000),tipo:f.tipo,email:em||null,idioma:LANG,nivel:curLevel()||'',origen:typeof SB_CFG!=='undefined'?'web':'claude'}).then(function(){
+      f.busy=false;f.ok=true;f.msg='';gc('feedback-'+f.tipo,true);render();
+    },function(){f.busy=false;f.err=tl('It couldn’t be sent. Check your connection and try again.');render()});
+  },
+  fbgo:function(){ui.tab=ui.msub='prog';render();var el=document.getElementById('fbp');if(el)el.scrollIntoView({block:'start'})},
   setlang:function(d){if(d.v===LANG)return;S.lang=d.v;save();try{location.reload()}catch(e){}},
   setjob:function(d){S.job=d.v;save();ui.tr=null;ui.pickJob=false;ui.session=null;ui.quiz=null;ui.msg='';render()},
   pickjob:function(){ui.pickJob=!ui.pickJob;render()},
@@ -2181,6 +2218,7 @@ document.addEventListener('change',function(e){
   rd.readAsText(e.target.files[0]);
 });
 document.addEventListener('input',function(e){
+  if(ui.fb&&(e.target.id==='fb-msg'||e.target.id==='fb-email')){ui.fb[e.target.id==='fb-msg'?'msg':'email']=e.target.value;return}
   if(e.target.id==='q'){
     ui.search=e.target.value;
     document.getElementById('list').innerHTML=listHtml();

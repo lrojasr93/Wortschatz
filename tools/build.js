@@ -110,6 +110,9 @@ const pwaHead = `<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Wortschatz">
+<!-- Anonymous, cookieless usage counts (GoatCounter). The app counts screens itself, so no automatic page view. -->
+<script>window.goatcounter={no_onload:true}</script>
+<script data-goatcounter="https://rumboalemania.goatcounter.com/count" async src="https://gc.zgo.at/count.js" onload="window.gcFlush&&gcFlush()"></script>
 `;
 // Fonts are self-hosted (tools/fonts) so no visitor data goes to Google.
 const gf = head.match(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>\n/);
