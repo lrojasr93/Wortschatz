@@ -1218,6 +1218,13 @@ function ring(n,g,size){
   return '<svg class="ring" viewBox="0 0 '+size+' '+size+'" width="'+size+'" height="'+size+'" aria-hidden="true"><circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="var(--line)" stroke-width="5"/>'+
     (f>0?'<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+(f>=1?'var(--das)':'var(--ink)')+'" stroke-width="5" stroke-linecap="round" stroke-dasharray="'+(c*f).toFixed(1)+' '+c.toFixed(1)+'" transform="rotate(-90 '+size/2+' '+size/2+')"/>':'')+'</svg>';
 }
+// Current level at a glance: one chip per path goal, each opens that level's practice
+function lvRow(){
+  var lv=curLevel(); if(!lv) return '';
+  var name=function(go){return go==='write'?tl('Words'):go==='verbs'?tl('Verbs'):go==='case'?tl('Cases'):go==='rules'?tl('Rules'):go==='read'?tl('Stories'):tl('Conversations')};
+  return '<div class="lvrow" role="group" aria-label="'+tl('Your level')+'"><span class="lvt">'+lv+'</span>'+pathGoals(lv).map(function(x){var ok=x.have>=x.need;
+    return '<button class="lvc'+(ok?' done':'')+'" data-a="go" data-v="'+x.go+'">'+name(x.go)+' '+(ok?'✓':Math.min(x.have,x.need)+'/'+x.need)+'</button>'}).join('')+'</div>';
+}
 function todayStrip(){
   var n=doneToday(), g=goal(), nx=nextUp(), left=g-n;
   var msg=n>=g?tl('Daily goal reached. Great work!'):(new Date().getHours()>=18&&n<g?tl('Only ')+left+tl(' more today to keep your goal.'):left+tl(' more answers to reach today’s goal.'));
@@ -1502,7 +1509,7 @@ function render(){
   _cmp=null;
   var m=document.getElementById('main');
   applySkin();
-  m.innerHTML=helpHtml()+(ui.tab==='chal'?vChTab():ui.tab==='mist'?moreNav()+vMist():ui.tab==='learn'?todayStrip()+learnNav()+vLearn():ui.tab==='read'?todayStrip()+vRead():ui.tab==='prog'?vProg():ui.tab==='quiz'?vQuiz():ui.tab==='translate'?writeNav()+vTrans():ui.tab==='conv'?vConv():ui.tab==='verbs'?vVerbs():ui.tab==='rules'?moreNav()+vRules():moreNav()+vWords());
+  m.innerHTML=helpHtml()+(ui.tab==='chal'?vChTab():ui.tab==='mist'?moreNav()+vMist():ui.tab==='learn'?todayStrip()+lvRow()+learnNav()+vLearn():ui.tab==='read'?todayStrip()+vRead():ui.tab==='prog'?vProg():ui.tab==='quiz'?vQuiz():ui.tab==='translate'?writeNav()+vTrans():ui.tab==='conv'?vConv():ui.tab==='verbs'?vVerbs():ui.tab==='rules'?moreNav()+vRules():moreNav()+vWords());
   var grp={translate:'write',conv:'write',words:'more',rules:'more',prog:'more',mist:'more',read:'learn'}[ui.tab]||ui.tab;
   document.querySelectorAll('nav button').forEach(function(b){
     b.setAttribute('aria-current',b.dataset.tab===grp?'page':'false');
