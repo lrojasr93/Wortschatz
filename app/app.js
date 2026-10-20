@@ -1510,6 +1510,7 @@ function vStats(){
 // ---- Backup: file export/import and sync to the Claude account ----
 var CLOUD={db:null,uid:null,state:'off',busy:false,again:false,timer:null};
 var LOCAL_FRESH=(function(){try{return !localStorage.getItem(KEY)}catch(e){return true}})();
+function hasProg(o){return !!o&&['know','days','progress','verbs'].some(function(k){return o[k]&&Object.keys(o[k]).length>0})}
 function cloudRef(){return CLOUD.db.doc('data/users/'+CLOUD.uid+'/save')}
 function cloudPush(){
   if(!CLOUD.db) return;
@@ -1528,7 +1529,7 @@ function cloudInit(){
       CLOUD.db=db; CLOUD.uid=id; CLOUD.state='sync';
       return cloudRef().get().then(function(snap){
         var d=snap.exists&&snap.data();
-        if(d&&d.state&&(LOCAL_FRESH||(d.at||0)>(S.savedAt||0))){
+        if(d&&d.state&&(LOCAL_FRESH||!hasProg(S)||(d.at||0)>(S.savedAt||0))){
           try{adopt(JSON.parse(d.state));CLOUD.state='on';CLOUD.at=Date.now();if(!ui.cv&&!ui.tr&&!ui.vq&&!ui.quiz&&!ui.rd&&!ui.pl)render();else stats();return}catch(e){}
         }
         cloudPush();
@@ -1617,20 +1618,27 @@ function render(){
 }
 
 // ---- Welcome: language, daily goal, where to start. Shown once, to new learners only. ----
-function onbAuto(){if(!S.onb&&(S.lastDay||S.place||Object.keys(S.progress||{}).length||Object.keys(S.know||{}).length||Object.keys(S.verbs||{}).length)){S.onb=1;save()}}
+function onbAuto(){
+  if(!S.onb&&S.onbNext&&S.lang===LANG) S.onb=1;
+  if(S.onb&&S.onbNext){var nx=S.onbNext;delete S.onbNext;save();if(nx==='test'){startPlace();ui.afterPl='path';ui.hub='today'}}
+if(!S.onb&&(S.lastDay||S.place||Object.keys(S.progress||{}).length||Object.keys(S.know||{}).length||Object.keys(S.verbs||{}).length)){S.onb=1;save()}}
+// The welcome follows the language picked in step 1 right away; the rest of the app switches when it reloads at the end
+var OTES={"Step N of 3":"Paso N de 3","Your daily goal":"Tu meta diaria","A little every day works better than a lot once a week. You can change it later in Me.":"Un poco cada día funciona mejor que mucho una vez por semana. Puedes cambiarla después en Yo.","Relaxed":"Tranquila","Steady":"Normal","Serious":"Intensa","recommended":"recomendada","about N minutes":"unos N minutos"," answers a day":" respuestas al día","Where do you start?":"¿Desde dónde empiezas?","Start from zero":"Empezar desde cero","Begin at A1 with the most useful words.":"Empiezas en A1 con las palabras más útiles.","I already know some German":"Ya sé algo de alemán","Take a short placement test (20 questions) and start at your level.":"Haz una prueba de nivel corta (20 preguntas) y empieza en tu nivel.","Vocabulary for your job (optional)":"Vocabulario para tu trabajo (opcional)","Job":"Trabajo","You can change it any time.":"Puedes cambiarlo cuando quieras.","Data science":"Ciencia de datos","Medicine":"Medicina","IT / Software":"TI / Software","Business / Office":"Negocios / Oficina","Engineering":"Ingeniería","Teaching":"Docencia","Getting the app ready…":"Preparando la app…"};
+function ot(x){return (ui.olang||S.lang||LANG)==='es'?(OTES[x]||tl(x)):x}
 function vOnb(){
-  var st=ui.onb||S.onbStep||1, h='<div class="onb"><p class="onbstep">'+tl('Step N of 3').replace('N',st)+'</p>';
+  if(ui.onbWait) return '<div class="onb"><p class="sub">'+ot('Getting the app ready…')+'</p></div>';
+  var st=ui.onb||S.onbStep||1, h='<div class="onb"><p class="onbstep">'+ot('Step N of 3').replace('N',st)+'</p>';
   if(st===1){
     h+='<h2>Willkommen! 👋</h2><p class="sub">'+(LANG==='es'?'Elige el idioma de la app · Choose the app language':'Choose the app language · Elige el idioma de la app')+'</p>';
     h+='<div class="onbopts"><button class="opt" data-a="onblang" data-v="es"><b>Español</b></button><button class="opt" data-a="onblang" data-v="en"><b>English</b></button></div>';
   } else if(st===2){
-    h+='<h2>'+tl('Your daily goal')+'</h2><p class="sub">'+tl('A little every day works better than a lot once a week. You can change it later in Me.')+'</p><div class="onbopts">'+
-      [[10,tl('Relaxed'),'5'],[20,tl('Steady'),'10'],[30,tl('Serious'),'15']].map(function(x){return '<button class="opt" data-a="onbgoal" data-v="'+x[0]+'"'+(x[0]===20?' aria-describedby="onbrec"':'')+'><b>'+x[1]+(x[0]===20?' <span class="rec" id="onbrec">'+tl('recommended')+'</span>':'')+'</b><span class="exen">'+tl('about N minutes').replace('N',x[2])+' · '+x[0]+tl(' answers a day')+'</span></button>'}).join('')+'</div>';
+    h+='<h2>'+ot('Your daily goal')+'</h2><p class="sub">'+ot('A little every day works better than a lot once a week. You can change it later in Me.')+'</p><div class="onbopts">'+
+      [[10,ot('Relaxed'),'5'],[20,ot('Steady'),'10'],[30,ot('Serious'),'15']].map(function(x){return '<button class="opt" data-a="onbgoal" data-v="'+x[0]+'"'+(x[0]===20?' aria-describedby="onbrec"':'')+'><b>'+x[1]+(x[0]===20?' <span class="rec" id="onbrec">'+ot('recommended')+'</span>':'')+'</b><span class="exen">'+ot('about N minutes').replace('N',x[2])+' · '+x[0]+ot(' answers a day')+'</span></button>'}).join('')+'</div>';
   } else {
-    h+='<h2>'+tl('Where do you start?')+'</h2><div class="onbopts">'+
-      '<button class="opt" data-a="onbgo" data-v="zero"><b>'+tl('Start from zero')+'</b><span class="exen">'+tl('Begin at A1 with the most useful words.')+'</span></button>'+
-      '<button class="opt" data-a="onbgo" data-v="test"><b>'+tl('I already know some German')+'</b><span class="exen">'+tl('Take a short placement test (20 questions) and start at your level.')+'</span></button></div>';
-    h+='<p class="qlabel" style="margin-top:22px">'+tl('Vocabulary for your job (optional)')+'</p><div class="chips wrap" role="group" aria-label="'+tl('Job')+'">'+JOBS.map(function(j){return '<button class="chip" data-a="onbjob" data-v="'+j.key+'" aria-pressed="'+(S.job===j.key)+'">'+esc(catL(j.name))+'</button>'}).join('')+'</div><p class="sub" style="margin-top:6px">'+tl('You can change it any time.')+'</p>';
+    h+='<h2>'+ot('Where do you start?')+'</h2><div class="onbopts">'+
+      '<button class="opt" data-a="onbgo" data-v="zero"><b>'+ot('Start from zero')+'</b><span class="exen">'+ot('Begin at A1 with the most useful words.')+'</span></button>'+
+      '<button class="opt" data-a="onbgo" data-v="test"><b>'+ot('I already know some German')+'</b><span class="exen">'+ot('Take a short placement test (20 questions) and start at your level.')+'</span></button></div>';
+    h+='<p class="qlabel" style="margin-top:22px">'+ot('Vocabulary for your job (optional)')+'</p><div class="chips wrap" role="group" aria-label="'+ot('Job')+'">'+JOBS.map(function(j){return '<button class="chip" data-a="onbjob" data-v="'+j.key+'" aria-pressed="'+(S.job===j.key)+'">'+esc(ot(j.name))+'</button>'}).join('')+'</div><p class="sub" style="margin-top:6px">'+ot('You can change it any time.')+'</p>';
   }
   return h+'</div>';
 }
@@ -1779,10 +1787,16 @@ function vMe(){
   return h+(ui.tab==='words'?meNav()+vWords():vProg());
 }
 var A={
-  onblang:function(d){if(d.v!==LANG){S.lang=d.v;S.onbStep=2;save();try{location.reload()}catch(e){}return}ui.onb=2;render()},
+  onblang:function(d){S.lang=d.v;ui.olang=d.v;S.onbStep=2;ui.onb=2;save();render()},
   onbgoal:function(d){S.goal=+d.v;S.onbStep=3;ui.onb=3;save();render()},
   onbjob:function(d){S.job=S.job===d.v?'':d.v;save();render()},
-  onbgo:function(d){S.onb=1;delete S.onbStep;ui.onb=null;ui.tab=ui.hub='today';if(d.v==='test'){startPlace();ui.afterPl='path'}save();render();document.getElementById('main').scrollTop=0},
+  onbgo:function(d){
+    delete S.onbStep;ui.onb=null;ui.tab=ui.hub='today';
+    // A different language than the one the page loaded with: save, reload once, then open the test there
+    if(S.lang&&S.lang!==LANG){S.onbNext=d.v;save();try{cloudPush()}catch(e){}ui.onbWait=true;render();
+      setTimeout(function(){try{location.reload()}catch(e){}},700);
+      setTimeout(function(){ui.onbWait=false;S.onb=1;save();render()},2500);return}
+    S.onb=1;S.onbNext=d.v;save();render();document.getElementById('main').scrollTop=0},
   cont:function(){var s=planNext();ui.planBox=null;if(!s){ui.tab=ui.hub='today';render();document.getElementById('main').scrollTop=0;return}planStart(s.k)},
   acct:function(){ui.tab='prog';ui.msub='prog';ui.hub='me';render();var el=document.getElementById('bkp');if(el)el.scrollIntoView({block:'start'})},
   acctno:function(){S.acctNo=1;save();render()},
