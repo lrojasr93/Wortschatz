@@ -125,6 +125,29 @@ form .cta{justify-content:center;width:100%}
 .price{margin-top:22px;display:grid;gap:8px;padding:0;list-style:none}
 .price li{display:flex;justify-content:space-between;gap:16px;border-bottom:1px dashed var(--line);padding-bottom:8px;font-variant-numeric:tabular-nums}
 .price li b{font-family:var(--display)}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:28px}
+.plan{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;min-width:0}
+.plan.pro-plan{border:2px solid var(--accent)}
+.plan h3{font-size:1.3rem;display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.plan h3 small{font-family:var(--body);font-size:1rem;font-weight:600;color:var(--muted)}
+.plan ul{margin:14px 0 0;padding-left:1.1em}
+.plan li{margin-top:6px}
+.plan li::marker{color:var(--accent)}
+.survey{display:grid;gap:18px}
+.survey fieldset{border:0;margin:0;padding:0;min-width:0}
+.survey legend{font-weight:600;margin-bottom:8px;padding:0}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opts label{font-weight:600;margin:0;border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 14px;cursor:pointer}
+.opts input{position:absolute;opacity:0;pointer-events:none}
+.opts input:checked+span{color:var(--accent)}
+.opts label:has(input:checked){border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.opts label:has(input:focus-visible){outline:3px solid var(--mark);outline-offset:2px}
+textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px 14px;resize:vertical;min-height:84px}
+textarea:focus-visible{outline:3px solid var(--mark);outline-offset:2px}
+.survey .done{font-weight:600;color:var(--ok);margin:0}
+.link-btn{background:none;border:0;color:var(--muted);font:inherit;text-decoration:underline;cursor:pointer;padding:0;justify-self:center}
+[hidden]{display:none!important}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px solid var(--line)}
 
 @media (max-width:820px){
@@ -133,6 +156,7 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
   .deck{height:310px}
   .feats{grid-template-columns:1fr 1fr}
   .steps{grid-template-columns:1fr}
+  .plans{grid-template-columns:1fr}
 }
 @media (max-width:520px){
   .feats,.row{grid-template-columns:1fr}
@@ -154,7 +178,7 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
       <h1>Tu alemán para <em>trabajar</em> en Alemania.</h1>
       <p class="sub">Aprende el vocabulario de tu profesión, desde el español, con práctica diaria que de verdad se queda.</p>
       <a class="cta" href="#lista">Quiero acceso anticipado →</a>
-      <a class="ghost" href="https://claude.ai/artifact/KEywUDXASTzhs9HdKwE7J1" target="_blank" rel="noopener" data-goatcounter-click="probar-app">Pruébala gratis</a>
+      <a class="ghost" href="app/" data-goatcounter-click="probar-app">Pruébala gratis</a>
       <p class="fine">Gratis para empezar. Sin tarjeta.</p>
     </div>
     <div class="deck" aria-label="Ejemplos de tarjetas de vocabulario">
@@ -231,17 +255,38 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
     </ol>
   </section>
 
+  <section id="planes">
+    <p class="eyebrow">Gratis y Pro</p>
+    <h2>Empieza gratis. Paga solo si te sirve.</h2>
+    <div class="plans">
+      <div class="plan">
+        <h3>Gratis <small>0 USD</small></h3>
+        <ul>
+          <li>Tarjetas y repaso espaciado con el vocabulario general A1–A2</li>
+          <li>Un paquete de profesión de muestra</li>
+          <li>Desafío diario, racha y total de palabras</li>
+          <li>Tu progreso sincronizado entre el móvil y el ordenador</li>
+        </ul>
+      </div>
+      <div class="plan pro-plan">
+        <h3>Pro <small>5,99 USD/mes (previsto)</small></h3>
+        <ul>
+          <li>Todos los niveles y todos los paquetes por profesión</li>
+          <li>Conversación con IA y correcciones en español</li>
+          <li>Todos los desafíos y estadísticas completas</li>
+          <li>Preparación para el examen Goethe o telc (más adelante)</li>
+        </ul>
+      </div>
+    </div>
+    <p class="lead">Sin anuncios en ningún plan.</p>
+  </section>
+
   <section id="lista">
     <div class="join">
       <div>
         <p class="eyebrow">Lista de espera</p>
         <h2>Sé de los primeros en probarla</h2>
         <p class="lead">Las personas de la lista reciben acceso anticipado gratis y un descuento de fundador en el plan Pro.</p>
-        <ul class="price">
-          <li><span>Plan gratis</span><b>0 USD</b></li>
-          <li><span>Plan Pro (previsto)</span><b>5,99 USD/mes</b></li>
-        </ul>
-        <p class="count" id="count" hidden></p>
       </div>
       <form id="waitlist" novalidate>
         <div>
@@ -270,7 +315,36 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
           <label for="acepto">Acepto la <a href="privacidad.html">política de privacidad</a> y recibir emails sobre el lanzamiento. Puedo darme de baja cuando quiera.</label>
         </div>
         <button class="cta" type="submit" id="enviar">Quiero acceso anticipado</button>
+        <div class="hp" aria-hidden="true"><label for="web">No rellenes este campo</label><input id="web" name="web" tabindex="-1" autocomplete="off"></div>
         <p class="msg" id="msg" role="status" aria-live="polite"></p>
+      </form>
+      <form id="encuesta" class="survey" hidden novalidate>
+        <p class="msg ok" tabindex="-1" id="gracias">¡Ya estás en la lista! Te escribiremos cuando abramos el acceso anticipado.</p>
+        <p style="margin:0" id="intro">Tres preguntas rápidas nos ayudan a decidir qué construir primero. Son opcionales.</p>
+        <fieldset>
+          <legend>¿Cuánto pagarías al mes por el plan Pro?</legend>
+          <div class="opts">
+            <label><input type="radio" name="pagaria" value="No pagaría"><span>No pagaría</span></label>
+            <label><input type="radio" name="pagaria" value="Menos de 5 USD"><span>Menos de 5 USD</span></label>
+            <label><input type="radio" name="pagaria" value="5 a 8 USD"><span>5 a 8 USD</span></label>
+            <label><input type="radio" name="pagaria" value="Más de 8 USD"><span>Más de 8 USD</span></label>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend>¿Cuándo necesitas el alemán para trabajar?</legend>
+          <div class="opts">
+            <label><input type="radio" name="cuando" value="Ya vivo en Alemania"><span>Ya vivo en Alemania</span></label>
+            <label><input type="radio" name="cuando" value="En menos de 6 meses"><span>En menos de 6 meses</span></label>
+            <label><input type="radio" name="cuando" value="En 6 a 12 meses"><span>En 6 a 12 meses</span></label>
+            <label><input type="radio" name="cuando" value="Más adelante o no lo sé"><span>Más adelante o no lo sé</span></label>
+          </div>
+        </fieldset>
+        <div>
+          <label for="falta">¿Qué te falta hoy para aprender el alemán que necesitas?</label>
+          <textarea id="falta" name="falta" maxlength="1000" placeholder="Por ejemplo: vocabulario de hospital, practicar entrevistas, tiempo…"></textarea>
+        </div>
+        <button class="cta" type="submit" id="enviar2">Enviar respuestas</button>
+        <p class="msg" id="msg2" role="status" aria-live="polite"></p>
       </form>
     </div>
   </section>
@@ -279,30 +353,42 @@ footer{padding-block:32px;color:var(--muted);font-size:.9rem;border-top:1px soli
 </div>
 
 <script>
-// Cuando esté en tu propio dominio, pega aquí la URL de tu formulario (por ejemplo, de Formspree).
-const FORM_ENDPOINT = "";
+// La lista de espera y la encuesta se guardan en Supabase (Frankfurt), tablas waitlist y encuesta.
+// La clave publicable solo permite añadir filas; la tabla se crea con tools/waitlist.sql.
+const SB_URL = "https://xyprmvlgjfdvuwjgmutu.supabase.co";
+const SB_KEY = "sb_publishable_K_Z1oV_FomxXzzc5YjbuiA_ZDvbsHvk";
 
 const form = document.getElementById("waitlist");
+const survey = document.getElementById("encuesta");
 const msg = document.getElementById("msg");
+const msg2 = document.getElementById("msg2");
 const btn = document.getElementById("enviar");
-const countEl = document.getElementById("count");
-let db = null, user = null;
+const btn2 = document.getElementById("enviar2");
+let joinedEmail = "";
 
-function say(text, kind){ msg.textContent = text; msg.className = "msg " + (kind || ""); }
+function say(el, text, kind){ el.textContent = text; el.className = "msg " + (kind || ""); }
+function track(path, title){ if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path, title, event: true }); }
 
-async function initClaude(){
-  if (!window.claude || !window.claude.use) return;
-  [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
-  if (db && user && await user.isOwner()) {
-    try {
-      const snap = await db.collection("waitlist").get();
-      const n = snap.size ?? (snap.docs ? snap.docs.length : 0);
-      countEl.textContent = n + (n === 1 ? " persona inscrita" : " personas inscritas") + " (solo tú ves este número)";
-      countEl.hidden = false;
-    } catch (e) {}
-  }
+// De dónde viene la visita (?utm_source=facebook o ?ref=grupo), para saber qué publicación funciona.
+function origin(){
+  const q = new URLSearchParams(location.search);
+  let o = q.get("utm_source") || q.get("ref") || "";
+  try { if (o) sessionStorage.setItem("origen", o); else o = sessionStorage.getItem("origen") || ""; } catch (e) {}
+  if (!o && document.referrer) { try { const h = new URL(document.referrer).hostname; if (h !== location.hostname) o = h; } catch (e) {} }
+  return o.slice(0, 60);
 }
-initClaude();
+const ORIGEN = origin();
+
+async function insert(table, row){
+  const r = await fetch(SB_URL + "/rest/v1/" + table, {
+    method: "POST",
+    headers: { "apikey": SB_KEY, "Content-Type": "application/json", "Prefer": "return=minimal" },
+    body: JSON.stringify(row)
+  });
+  if (r.status === 409) return "duplicate";
+  if (!r.ok) throw new Error("http " + r.status);
+  return "ok";
+}
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -310,34 +396,46 @@ form.addEventListener("submit", async (e) => {
     email: form.email.value.trim().toLowerCase(),
     profesion: form.profesion.value,
     nivel: form.nivel.value,
-    consentimiento: true,
-    fecha: new Date().toISOString()
+    consentimiento: form.acepto.checked,
+    origen: ORIGEN || null
   };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return say("Revisa tu email: parece incompleto.", "err");
-  if (!data.profesion || !data.nivel) return say("Elige tu profesión y tu nivel de alemán.", "err");
-  if (!form.acepto.checked) return say("Marca la casilla de privacidad para poder escribirte.", "err");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return say(msg, "Revisa tu email: parece incompleto.", "err");
+  if (!data.profesion || !data.nivel) return say(msg, "Elige tu profesión y tu nivel de alemán.", "err");
+  if (!data.consentimiento) return say(msg, "Marca la casilla de privacidad para poder escribirte.", "err");
 
-  btn.disabled = true; say("Enviando…");
+  btn.disabled = true; say(msg, "Enviando…");
   try {
-    if (FORM_ENDPOINT) {
-      const r = await fetch(FORM_ENDPOINT, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(data) });
-      if (!r.ok) throw new Error("http " + r.status);
-    } else if (db && user) {
-      const id = await user.id();
-      if (!id) throw new Error("no_id");
-      await db.doc("waitlist/" + id).set(data);
-    } else {
-      throw new Error("preview");
+    if (!form.web.value) {
+      const res = await insert("waitlist", data);
+      if (res === "ok") track("registro-lista", "Registro en la lista de espera");
     }
-    if (window.goatcounter && window.goatcounter.count) window.goatcounter.count({ path: "registro-lista", title: "Registro en la lista de espera", event: true });
-    form.reset();
-    say("¡Listo! Te escribiremos cuando abramos el acceso anticipado.", "ok");
-    if (user && await user.isOwner()) initClaude();
+    joinedEmail = data.email;
+    form.hidden = true;
+    survey.hidden = false;
+    document.getElementById("gracias").focus();
   } catch (err) {
-    say(String(err.message) === "preview"
-      ? "Esta es una vista previa. El formulario se activa cuando la página se publique en su propio dominio."
-      : "No pudimos guardar tus datos. Inténtalo de nuevo en un momento.", "err");
+    say(msg, "No pudimos guardar tus datos. Inténtalo de nuevo en un momento.", "err");
   } finally { btn.disabled = false; }
+});
+
+survey.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const row = {
+    email: joinedEmail,
+    pagaria: (survey.querySelector("input[name=pagaria]:checked") || {}).value || null,
+    cuando: (survey.querySelector("input[name=cuando]:checked") || {}).value || null,
+    falta: survey.falta.value.trim().slice(0, 1000) || null
+  };
+  if (!row.pagaria && !row.cuando && !row.falta) return say(msg2, "Responde al menos una pregunta, o cierra esta página: ya estás en la lista.", "err");
+  btn2.disabled = true; say(msg2, "Enviando…");
+  try {
+    await insert("encuesta", row);
+    track("encuesta-respondida", "Encuesta respondida");
+    survey.querySelectorAll("#intro, fieldset, div, button").forEach(el => el.hidden = true);
+    say(msg2, "¡Gracias! Tus respuestas nos ayudan mucho.", "ok");
+  } catch (err) {
+    say(msg2, "No pudimos guardar tus respuestas. Inténtalo de nuevo en un momento.", "err");
+  } finally { btn2.disabled = false; }
 });
 </script>
 <!-- Analítica sin cookies: GoatCounter (rumboalemania.goatcounter.com) -->
