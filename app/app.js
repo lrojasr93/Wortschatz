@@ -418,27 +418,45 @@ function trDone(q,v){
   mist('tr:'+q.qs[q.i].id,q.res.perfect);
   tick();
 }
-// Say it: the browser's German speech recognition. Where it doesn't exist or the microphone is blocked, you check yourself.
-function listen(){
-  var q=ui.tr; if(!q||q.res||q.listening) return;
-  var r; try{r=new SR()}catch(e){ui.srOff=true;render();return}
-  r.lang='de-DE'; r.interimResults=false; r.maxAlternatives=3; r.continuous=false;
-  q.listening=true; q.srMsg=''; render();
+// Say it: the browser's German speech recognition. It keeps listening through pauses until you tap "Done, check it",
+// so you can speak slowly. Where it doesn't exist or the microphone is blocked, you check yourself.
+var REC=null;
+function srText(q){return ((q.heard||'')+' '+(q.interim||'')).replace(/\s+/g,' ').trim()}
+function srAbort(){var r=REC;REC=null;if(r){try{r.onend=r.onresult=r.onerror=null;r.abort()}catch(e){}}}
+function srStart(q){
+  var r; try{r=new SR()}catch(e){ui.srOff=true;q.listening=false;render();return}
+  r.lang='de-DE'; r.interimResults=true; r.maxAlternatives=1; r.continuous=true; REC=r;
   r.onresult=function(e){
     if(ui.tr!==q||q.res) return;
-    var ex=q.qs[q.i].ex, best='', bp=-1, alts=e.results[0];
-    for(var k=0;k<alts.length;k++){var c=checkTrans(alts[k].transcript,ex),p=c.perfect?2:c.pct;if(p>bp){bp=p;best=alts[k].transcript}}
-    q.listening=false; trDone(q,best); render();
+    var fin='', mid='';
+    for(var k=e.resultIndex;k<e.results.length;k++){var t=e.results[k][0].transcript;if(e.results[k].isFinal)fin+=' '+t;else mid+=' '+t}
+    q.heard=((q.heard||'')+fin).trim(); q.interim=mid.trim();
+    var el=document.getElementById('sr-live'); if(el){el.textContent=srText(q)||tl('…');el.classList.toggle('empty',!srText(q))}
   };
   r.onerror=function(e){
-    if(ui.tr!==q) return; q.listening=false;
-    if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'||e.error==='network'){ui.srOff=true;q.srMsg=tl('The microphone isn’t available here, so you check yourself.')}
-    else if(e.error==='no-speech') q.srMsg=tl('I didn’t hear anything. Tap the microphone and try again.');
-    else if(e.error!=='aborted') q.srMsg=tl('That didn’t work. Tap the microphone and try again.');
-    render();
+    if(ui.tr!==q) return;
+    if(e.error==='not-allowed'||e.error==='service-not-allowed'||e.error==='audio-capture'){q.listening=false;REC=null;ui.srOff=true;q.srMsg=tl('The microphone isn’t available here, so you check yourself.');render()}
+    else if(e.error==='network'){q.listening=false;REC=null;q.srMsg=tl('Speech recognition needs an internet connection. Try again.');render()}
   };
-  r.onend=function(){if(ui.tr===q&&q.listening){q.listening=false;render()}};
-  try{r.start()}catch(e){q.listening=false;ui.srOff=true;render()}
+  // Browsers end a session after a long silence: start a new one and keep what was heard, until you tap Done
+  r.onend=function(){
+    if(ui.tr!==q||REC!==r) return;
+    if(q.listening&&!q.stopping){srStart(q);return}
+    REC=null; srFinish(q);
+  };
+  try{r.start()}catch(e){q.listening=false;REC=null;ui.srOff=true;render()}
+}
+function listen(){
+  var q=ui.tr; if(!q||q.res||q.listening) return;
+  q.listening=true; q.stopping=false; q.heard=''; q.interim=''; q.srMsg=''; render(); srStart(q);
+}
+function srStop(){var q=ui.tr; if(!q||!q.listening) return; q.stopping=true; render(); if(REC){try{REC.stop()}catch(e){srAbort();srFinish(q)}} else srFinish(q)}
+function srFinish(q){
+  if(!q.listening) return;
+  var t=srText(q); q.listening=false; q.stopping=false; q.interim='';
+  if(ui.tr!==q||q.res) return;
+  if(!t){q.srMsg=tl('I didn’t hear anything. Tap the microphone and try again.');render();return}
+  trDone(q,t); render();
 }
 function vTrans(){
   var g=jobGate(); if(g) return chips()+g;
@@ -469,9 +487,16 @@ function vTrans(){
     h+='<div class="row">'+hintBtn+'<button class="btn" data-a="trcheck"'+(q.pick.length<t.length?' disabled':'')+'>'+tl('Check')+'</button></div>';
     h+=tl('<button class="link" data-a="trskip" style="margin-top:12px">Show the answer</button>');
   } else if(!r&&md==='say'&&!self){
-    h+='<div class="micw"><button class="mic'+(q.listening?' on':'')+'" data-a="trlisten" aria-label="'+tl('Speak')+'"'+(q.listening?' disabled':'')+'>'+MIC+'</button><p class="ghint">'+(q.listening?tl('Listening… say the sentence now.'):tl('Tap the microphone and say it.'))+'</p></div>';
-    if(q.srMsg) h+='<p class="ghint">'+esc(q.srMsg)+'</p>';
-    h+='<div class="row">'+hintBtn+'<button class="btn ghost" data-a="trskip">'+tl('Show the answer')+'</button>'+'</div>';
+    if(q.listening){
+      var lt=srText(q);
+      h+='<div class="micw"><span class="mic on" aria-hidden="true">'+MIC+'</span><p class="ghint">'+(q.stopping?tl('Checking…'):tl('Listening. Take your time, pauses are fine. Tap Done when you finish.'))+'</p></div>';
+      h+='<p class="srlive'+(lt?'':' empty')+'" id="sr-live" aria-live="polite">'+esc(lt||'…')+'</p>';
+      h+='<button class="btn wide" data-a="trstop"'+(q.stopping?' disabled':'')+'>'+tl('Done, check it')+'</button><button class="link" data-a="trredo" style="margin-top:10px">'+tl('Start over')+'</button>';
+    } else {
+      h+='<div class="micw"><button class="mic" data-a="trlisten" aria-label="'+tl('Speak')+'">'+MIC+'</button><p class="ghint">'+tl('Tap the microphone, say the sentence at your own pace, then tap Done.')+'</p></div>';
+      if(q.srMsg) h+='<p class="ghint">'+esc(q.srMsg)+'</p>';
+      h+='<div class="row">'+hintBtn+'<button class="btn ghost" data-a="trskip">'+tl('Show the answer')+'</button>'+'</div>';
+    }
   } else if(!r&&self){
     if(q.srMsg) h+='<p class="ghint">'+esc(q.srMsg)+'</p>';
     if(!q.rev){
@@ -1879,7 +1904,7 @@ var A={
   setjob:function(d){S.job=d.v;save();ui.tr=null;ui.pickJob=false;ui.session=null;ui.quiz=null;ui.msg='';render()},
   pickjob:function(){ui.pickJob=!ui.pickJob;render()},
   help:function(){ui.help=!ui.help;render();if(ui.help)document.getElementById('main').scrollTop=0},
-  tab:function(d){if(d.v!=='chal'){if(ui.quiz&&ui.quiz.ch)ui.quiz=null;if(ui.vq&&ui.vq.ch)ui.vq=null;if(ui.ta){taStop();ui.ta=null}}ui.hub=d.v;ui.tab=d.v==='me'?(ui.msub==='words'?'words':'prog'):d.v;ui.only=null;ui.trmo=null;ui.planCur=null;ui.planBox=null;ui.lvf=null;ui.fopen=false;ui.err='';render();document.getElementById('main').scrollTop=0},
+  tab:function(d){srAbort();if(ui.tr)ui.tr.listening=false;if(d.v!=='chal'){if(ui.quiz&&ui.quiz.ch)ui.quiz=null;if(ui.vq&&ui.vq.ch)ui.vq=null;if(ui.ta){taStop();ui.ta=null}}ui.hub=d.v;ui.tab=d.v==='me'?(ui.msub==='words'?'words':'prog'):d.v;ui.only=null;ui.trmo=null;ui.planCur=null;ui.planBox=null;ui.lvf=null;ui.fopen=false;ui.err='';render();document.getElementById('main').scrollTop=0},
   wsub:function(d){ui.wsub=ui.tab=d.v;render()},
   chgo:function(d){chStart(d.v,'daily');ui.tab='chal';render();document.getElementById('main').scrollTop=0},
   chboss:function(){bossStart();ui.tab='chal';render();document.getElementById('main').scrollTop=0},
@@ -2067,11 +2092,13 @@ var A={
   tadd:function(d){var q=ui.tr;if(!q||q.res)return;var k=+d.v;if(q.pick.indexOf(k)<0)q.pick.push(k);render()},
   tdel:function(d){var q=ui.tr;if(!q||q.res)return;q.pick.splice(+d.v,1);render()},
   trlisten:function(){listen()},
+  trstop:function(){srStop()},
+  trredo:function(){var q=ui.tr;if(!q)return;q.heard='';q.interim='';var el=document.getElementById('sr-live');if(el){el.textContent='…';el.classList.add('empty')}},
   tragain:function(){var q=ui.tr;if(!q)return;q.again=true;q.res=null;listen()},
   trreveal:function(){var q=ui.tr;if(q){q.rev=true;render()}},
   trself:function(d){var q=ui.tr;if(!q||q.res)return;var ok=d.v==='1';sfx(ok);if(ok)q.score++;tick();q.res=checkTrans(ok?q.qs[q.i].ex:'',q.qs[q.i].ex);q.res.self=1;A.trnext()},
-  trskip:function(){var q=ui.tr; if(!q||q.res) return; q.res=checkTrans('',q.qs[q.i].ex);if(!q.again)mist('tr:'+q.qs[q.i].id,false);render()},
-  trnext:function(){var q=ui.tr;q.i++;q.res=null;q.ans='';q.hint=false;q.tiles=null;q.pick=[];q.rev=false;q.again=false;q.srMsg='';render();document.getElementById('main').scrollTop=0},
+  trskip:function(){var q=ui.tr; if(!q||q.res) return; srAbort(); q.listening=false; q.res=checkTrans('',q.qs[q.i].ex);if(!q.again)mist('tr:'+q.qs[q.i].id,false);render()},
+  trnext:function(){srAbort();var q=ui.tr;q.i++;q.res=null;q.ans='';q.hint=false;q.tiles=null;q.pick=[];q.rev=false;q.again=false;q.srMsg='';render();document.getElementById('main').scrollTop=0},
   mopen:function(){ui.tab=ui.msub='mist';if(ui.ta){taStop();ui.ta=null}ui.rd=null;ui.quiz=null;ui.tr=null;ui.vq=null;ui.cv=null;ui.confirmClear=false;render();document.getElementById('main').scrollTop=0},
   mclose:function(){ui.tab=ui.hub||'today';render()},
   mclear:function(){if(!ui.confirmClear){ui.confirmClear=true;render();return}S.mist={};save();ui.confirmClear=false;render()},
@@ -2108,7 +2135,7 @@ var A={
   lexit:function(){ui.planCur=null;if(ui.session){ui.session.exited=true;ui.flipped=false};render();document.getElementById('main').scrollTop=0},
   lresume:function(){ui.session=null;render()},
   qexit:function(){ui.planCur=null;ui.quiz=null;render();document.getElementById('main').scrollTop=0},
-  trexit:function(){ui.planCur=null;ui.tr=null;ui.trMsg='';render();document.getElementById('main').scrollTop=0},
+  trexit:function(){srAbort();ui.planCur=null;ui.tr=null;ui.trMsg='';render();document.getElementById('main').scrollTop=0},
   vexit:function(){ui.planCur=null;ui.vq=null;render();document.getElementById('main').scrollTop=0},
   vgroup:function(d){ui.vg=d.v;render()},
   vptype:function(d){ui.vp=d.v;if(d.v!=='all')ui.vt='perf';render()},
