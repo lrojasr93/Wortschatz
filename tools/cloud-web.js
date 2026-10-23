@@ -59,7 +59,9 @@ function sbClient(){
   });
 }
 function hasProgress(o){return !!o&&['know','days','progress','verbs'].some(function(k){return o[k]&&Object.keys(o[k]).length>0})}
-function cloudShow(){if(ui.tab==='prog'&&!ui.pl)render();else stats()}
+// A saved Supabase session (or a sign-in link just opened) means the person is signed in, even before the session finishes loading
+function sbSignedIn(){try{return !!localStorage.getItem(SB_AUTH)||/access_token=/.test(location.hash)}catch(e){return false}}
+function cloudShow(){if((ui.tab==='prog'||ui.tab==='today')&&!ui.pl)render();else stats()}
 function cloudFree(){return !ui.cv&&!ui.tr&&!ui.vq&&!ui.quiz&&!ui.rd&&!ui.pl&&!ui.session}
 function cloudRow(){return SB.from('progress').select('data,saved_at').eq('user_id',CLOUD.uid).maybeSingle().then(function(r){if(r.error)throw r.error;return r.data})}
 function cloudTake(row){adopt(JSON.parse(JSON.stringify(row.data)));S.savedAt=row.saved_at;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(cloudFree())render();else stats()}

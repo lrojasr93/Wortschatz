@@ -1789,7 +1789,7 @@ function vToday(){
     return '<li class="'+(x.done?'done':x===nx?'cur':x.skip?'skip':'')+'"><span class="sk" aria-hidden="true">'+(x.done?'✓':x.skip?'–':'')+'</span><span><b>'+esc(x.t)+'</b><span class="exen">'+esc(x.d)+'</span></span></li>'}).join('')+'</ol>';
   h+=nx?'<button class="btn wide big" data-a="cont">'+(any?tl('Continue'):tl('Start'))+'</button>':'<p class="sub">🎉 '+tl('You finished today’s session. Extra practice still counts toward your goal.')+'</p><button class="btn ghost wide" data-a="tab" data-v="practice">'+tl('Keep practicing')+'</button>';
   h+='</div>';
-  if(typeof SB_CFG!=='undefined'&&!CLOUD.uid&&Object.keys(S.days||{}).length&&!S.acctNo)
+  if(typeof SB_CFG!=='undefined'&&!CLOUD.uid&&!(typeof sbSignedIn==='function'&&sbSignedIn())&&Object.keys(S.days||{}).length&&!S.acctNo)
     h+='<div class="panel acct"><b>'+tl('Save your progress')+'</b><p class="sub">'+tl('Create a free account to keep your progress safe and use it on your other devices.')+'</p><div class="row"><button class="btn ghost" data-a="acctno">'+tl('Not now')+'</button><button class="btn" data-a="acct">'+tl('Create account')+'</button></div></div>';
   var cl=curLevel();
   h+='<div class="panel lvp"><div class="lvph"><b>'+tl('Your level')+'</b><button class="link" data-a="tab" data-v="path">'+tl('See your path')+' →</button></div>'+(cl?lvRow():'<p class="sub">'+tl('You finished every level. Wunderbar!')+'</p>')+
@@ -2371,7 +2371,9 @@ function sbClient(){
   });
 }
 function hasProgress(o){return !!o&&['know','days','progress','verbs'].some(function(k){return o[k]&&Object.keys(o[k]).length>0})}
-function cloudShow(){if(ui.tab==='prog'&&!ui.pl)render();else stats()}
+// A saved Supabase session (or a sign-in link just opened) means the person is signed in, even before the session finishes loading
+function sbSignedIn(){try{return !!localStorage.getItem(SB_AUTH)||/access_token=/.test(location.hash)}catch(e){return false}}
+function cloudShow(){if((ui.tab==='prog'||ui.tab==='today')&&!ui.pl)render();else stats()}
 function cloudFree(){return !ui.cv&&!ui.tr&&!ui.vq&&!ui.quiz&&!ui.rd&&!ui.pl&&!ui.session}
 function cloudRow(){return SB.from('progress').select('data,saved_at').eq('user_id',CLOUD.uid).maybeSingle().then(function(r){if(r.error)throw r.error;return r.data})}
 function cloudTake(row){adopt(JSON.parse(JSON.stringify(row.data)));S.savedAt=row.saved_at;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(cloudFree())render();else stats()}
