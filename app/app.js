@@ -1384,6 +1384,27 @@ function pathGoals(lv){
 }
 function levelDone(lv){return pathGoals(lv).every(function(x){return x.have>=x.need})}
 function startIdx(){return S.place?LV.indexOf(S.place.lvl):0}
+// Celebrate each level the moment its last goal is met (once per level; levels already done before this existed are noted silently)
+function lvCheck(){
+  if(!S.onb||ui.lvUp||busy()) return;
+  var seed=!S.lvDone; S.lvDone=S.lvDone||{}; var got=null;
+  for(var i=seed?0:startIdx();i<LV.length;i++){var lv=LV[i]; if(S.lvDone[lv]) continue; if(levelDone(lv)){S.lvDone[lv]=today(); if(!seed&&!got) got=lv} else if(!seed) break}
+  if(seed||got) save();
+  if(got){ui.lvUp=got;setTimeout(lvShow,250)}
+}
+function lvShow(){
+  var lv=ui.lvUp; if(!lv||document.querySelector('.lvup')) return;
+  var nx=LV[LV.indexOf(lv)+1], cols=['var(--der)','var(--die)','var(--das)','#f5b700','#8b5cf6'], cf='';
+  for(var i=0;i<60;i++) cf+='<i style="left:'+(Math.random()*100).toFixed(1)+'%;background:'+cols[i%5]+';animation-delay:'+(Math.random()*0.9).toFixed(2)+'s;animation-duration:'+(2.2+Math.random()*1.6).toFixed(2)+'s;--dx:'+Math.round(Math.random()*160-80)+'px;--r:'+Math.round(Math.random()*720-360)+'deg"></i>';
+  var d=document.createElement('div'); d.className='lvup'; d.setAttribute('role','dialog'); d.setAttribute('aria-modal','true'); d.setAttribute('aria-labelledby','lvup-t');
+  d.innerHTML='<div class="lvcf" aria-hidden="true">'+cf+'</div><div class="lvcard"><div class="lvbadge">'+lv+'</div><h2 id="lvup-t">'+tl('Level LV complete!').replace('LV',lv)+'</h2><p class="sub">'+
+    (nx?tl('You met every LV goal. Next stop: NX.').replace('LV',lv).replace('NX',nx):tl('You finished the whole path up to B2. Wahnsinn!'))+'</p>'+
+    '<button class="btn wide big" data-a="lvupx">'+(nx?tl('On to NX').replace('NX',nx)+' →':tl('Continue'))+'</button></div>';
+  document.body.appendChild(d); gc('level-'+lv,1);
+  if(S.sfx!==false){try{_ac=_ac||new (window.AudioContext||window.webkitAudioContext)();var t=_ac.currentTime;[[523,0],[659,.12],[784,.24],[1047,.4]].forEach(function(n){var o=_ac.createOscillator(),g=_ac.createGain();o.type='triangle';o.frequency.value=n[0];g.gain.setValueAtTime(0.0001,t+n[1]);g.gain.exponentialRampToValueAtTime(0.18,t+n[1]+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+n[1]+(n[1]>.3?0.6:0.2));o.connect(g);g.connect(_ac.destination);o.start(t+n[1]);o.stop(t+n[1]+0.7)})}catch(e){}}
+  try{if(navigator.vibrate)navigator.vibrate([60,40,60,40,120])}catch(e){}
+  var b=d.querySelector('button'); if(b) b.focus();
+}
 function curLevel(){for(var i=startIdx();i<LV.length;i++) if(!levelDone(LV[i])) return LV[i]; return null}
 function nextUp(){
   if(!S.place) return {t:tl('take the placement test'),go:'place'};
@@ -1687,7 +1708,7 @@ function render(){
   document.querySelectorAll('nav button').forEach(function(b){
     b.setAttribute('aria-current',b.dataset.tab===grp?'page':'false');
   });
-  stats();
+  stats(); lvCheck();
   m.querySelectorAll('.chips').forEach(function(c){var b=c.querySelector('[aria-pressed="true"]');if(b&&b.offsetLeft+b.offsetWidth>c.clientWidth+c.offsetLeft)c.scrollLeft=b.offsetLeft-c.offsetLeft-16});
   try{if(matchMedia('(pointer:fine)').matches){var inp=m.querySelector('#verb-in,#w-in,#gap-in,#tr-in,#cv-in,#wd-in');if(inp&&document.activeElement!==inp)inp.focus({preventScroll:true})}}catch(e){}
 }
@@ -1933,6 +1954,7 @@ var A={
     ui.tab=b.tab; ui.hub=b.hub; ui.lvf=b.lvf; ui.only=b.only; ui.planCur=b.planCur;
     render(); document.getElementById('main').scrollTop=b.y;
   },
+  lvupx:function(){var o=document.querySelector('.lvup');if(o)o.remove();ui.lvUp=null;ui.tab=ui.hub='path';ui.pathLv=null;ui.uOpen=null;render();document.getElementById('main').scrollTop=0},
   setlang:function(d){if(d.v===LANG)return;S.lang=d.v;save();try{location.reload()}catch(e){}},
   setjob:function(d){S.job=d.v;save();ui.tr=null;ui.pickJob=false;ui.session=null;ui.quiz=null;ui.msg='';render()},
   pickjob:function(){ui.pickJob=!ui.pickJob;render()},
