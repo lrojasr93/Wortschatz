@@ -1500,16 +1500,37 @@ function trDone(q,v){
 // Say it: the browser's German speech recognition. It keeps listening through pauses until you tap "Done, check it",
 // so you can speak slowly. Where it doesn't exist or the microphone is blocked, you check yourself.
 var REC=null;
-function srText(q){return ((q.heard||'')+' '+(q.interim||'')).replace(/\s+/g,' ').trim()}
+// Join two pieces of a transcript. Android Chrome repeats the whole phrase in every new result ("wir", "wir essen", ...),
+// so a piece that already contains the text so far replaces it, and words that overlap at the seam are not added twice.
+function srMerge(a,b){
+  a=(a||'').trim(); b=(b||'').trim(); if(!a) return b; if(!b) return a;
+  var A=a.split(/\s+/), B=b.split(/\s+/), na=A.map(norm), nb=B.map(norm), ja=na.join(' '), jb=nb.join(' ');
+  if(jb.indexOf(ja)===0) return b;
+  if(ja.indexOf(jb)>-1) return a;
+  for(var k=Math.min(A.length,B.length);k>0;k--) if(na.slice(-k).join(' ')===nb.slice(0,k).join(' ')) return A.concat(B.slice(k)).join(' ');
+  return a+' '+b;
+}
+// Last safety net: drop a word or phrase repeated right after itself ("wir wir essen wir essen" → "wir essen")
+function srClean(t){
+  var w=t.split(/\s+/).filter(Boolean), changed=true;
+  while(changed){changed=false;
+    for(var n=Math.floor(w.length/2);n>=1&&!changed;n--) for(var i=0;i+2*n<=w.length;i++){
+      if(w.slice(i,i+n).map(norm).join(' ')===w.slice(i+n,i+2*n).map(norm).join(' ')){w.splice(i+n,n);changed=true;break}
+    }
+  }
+  return w.join(' ');
+}
+function srText(q){return srMerge(q.heard||'',q.sess||'')}
 function srAbort(){var r=REC;REC=null;if(r){try{r.onend=r.onresult=r.onerror=null;r.abort()}catch(e){}}}
 function srStart(q){
   var r; try{r=new SR()}catch(e){ui.srOff=true;q.listening=false;render();return}
   r.lang='de-DE'; r.interimResults=true; r.maxAlternatives=1; r.continuous=true; REC=r;
   r.onresult=function(e){
     if(ui.tr!==q||q.res) return;
-    var fin='', mid='';
-    for(var k=e.resultIndex;k<e.results.length;k++){var t=e.results[k][0].transcript;if(e.results[k].isFinal)fin+=' '+t;else mid+=' '+t}
-    q.heard=((q.heard||'')+fin).trim(); q.interim=mid.trim();
+    // Rebuild this listening session from all its results each time, so nothing is counted twice
+    var t='';
+    for(var k=0;k<e.results.length;k++) t=srMerge(t,e.results[k][0].transcript);
+    q.sess=t;
     var el=document.getElementById('sr-live'); if(el){el.textContent=srText(q)||tl('…');el.classList.toggle('empty',!srText(q))}
   };
   r.onerror=function(e){
@@ -1520,6 +1541,7 @@ function srStart(q){
   // Browsers end a session after a long silence: start a new one and keep what was heard, until you tap Done
   r.onend=function(){
     if(ui.tr!==q||REC!==r) return;
+    q.heard=srText(q); q.sess='';
     if(q.listening&&!q.stopping){srStart(q);return}
     REC=null; srFinish(q);
   };
@@ -1527,15 +1549,17 @@ function srStart(q){
 }
 function listen(){
   var q=ui.tr; if(!q||q.res||q.listening) return;
-  q.listening=true; q.stopping=false; q.heard=''; q.interim=''; q.srMsg=''; render(); srStart(q);
+  q.listening=true; q.stopping=false; q.heard=''; q.sess=''; q.srMsg=''; render(); srStart(q);
 }
 function srStop(){var q=ui.tr; if(!q||!q.listening) return; q.stopping=true; render(); if(REC){try{REC.stop()}catch(e){srAbort();srFinish(q)}} else srFinish(q)}
 function srFinish(q){
   if(!q.listening) return;
-  var t=srText(q); q.listening=false; q.stopping=false; q.interim='';
+  var t=srText(q); q.listening=false; q.stopping=false; q.sess='';
   if(ui.tr!==q||q.res) return;
   if(!t){q.srMsg=tl('I didn’t hear anything. Tap the microphone and try again.');render();return}
-  trDone(q,t); render();
+  // Check both what was heard and a version without repeated words, and keep the better match
+  var c=srClean(t), ex=q.qs[q.i].ex, sc=function(x){var r=checkTrans(x,ex);return r.perfect?2:r.pct-toks(x).length*0.001};
+  trDone(q,sc(c)>=sc(t)?c:t); render();
 }
 function vTrans(){
   var g=jobGate(); if(g) return chips()+g;
@@ -3366,7 +3390,7 @@ var A={
   tdel:function(d){var q=ui.tr;if(!q||q.res)return;q.pick.splice(+d.v,1);render()},
   trlisten:function(){listen()},
   trstop:function(){srStop()},
-  trredo:function(){var q=ui.tr;if(!q)return;q.heard='';q.interim='';var el=document.getElementById('sr-live');if(el){el.textContent='…';el.classList.add('empty')}},
+  trredo:function(){var q=ui.tr;if(!q)return;q.heard='';q.sess='';if(q.listening){srAbort();srStart(q)}var el=document.getElementById('sr-live');if(el){el.textContent='…';el.classList.add('empty')}},
   tragain:function(){var q=ui.tr;if(!q)return;q.again=true;q.res=null;listen()},
   trreveal:function(){var q=ui.tr;if(q){q.rev=true;render()}},
   trself:function(d){var q=ui.tr;if(!q||q.res)return;var ok=d.v==='1';sfx(ok);if(ok)q.score++;tick();q.res=checkTrans(ok?q.qs[q.i].ex:'',q.qs[q.i].ex);q.res.self=1;A.trnext()},
