@@ -1666,7 +1666,10 @@ function busy(){
   return (t==='quiz'&&ui.quiz&&ui.quiz.i<ui.quiz.qs.length)||(t==='translate'&&ui.tr&&ui.tr.i<ui.tr.qs.length)||(t==='verbs'&&((ui.vq&&ui.vq.i<ui.vq.qs.length)||ui.vl))||
     (t==='conv'&&ui.cv&&ui.cv.i<ui.cv.items.length)||(t==='learn'&&ui.session&&ui.session.queue.length&&!ui.session.exited)||(t==='rules'&&ui.dr&&ui.dr.i<ui.dr.qs.length)||(t==='read'&&ui.rd);
 }
+// "See the rule" from an exercise: remember where you were, so one tap brings you back to the same question
+function markBack(){if(!ui.ruleBack)ui.ruleBack={tab:ui.tab,hub:ui.hub,lvf:ui.lvf,only:ui.only,planCur:ui.planCur,y:document.getElementById('main').scrollTop}}
 function crumb(){
+  if(ui.ruleBack&&(ui.tab==='rules'||(ui.tab==='verbs'&&ui.vlesson))) return '<button class="btn ghost wide backex" data-a="ruleback">← '+tl('Back to the exercise')+'</button>';
   var h=ui.hub; if(!h||h==='chal'||busy()) return '';
   var n={today:tl('Today'),path:tl('Learn'),practice:tl('Practice'),me:tl('Me')}[h];
   return '<button class="link crumb" data-a="tab" data-v="'+h+'">← '+n+'</button>';
@@ -1924,11 +1927,17 @@ var A={
     },function(){f.busy=false;f.err=tl('It couldn’t be sent. Check your connection and try again.');render()});
   },
   fbgo:function(){ui.tab=ui.msub='prog';render();var el=document.getElementById('fbp');if(el)el.scrollIntoView({block:'start'})},
+  ruleback:function(){
+    var b=ui.ruleBack; if(!b) return; ui.ruleBack=null;
+    ui.vlesson=false; ui.vlFocus=null; ui.vlBack=null; ui.rFocus=null;
+    ui.tab=b.tab; ui.hub=b.hub; ui.lvf=b.lvf; ui.only=b.only; ui.planCur=b.planCur;
+    render(); document.getElementById('main').scrollTop=b.y;
+  },
   setlang:function(d){if(d.v===LANG)return;S.lang=d.v;save();try{location.reload()}catch(e){}},
   setjob:function(d){S.job=d.v;save();ui.tr=null;ui.pickJob=false;ui.session=null;ui.quiz=null;ui.msg='';render()},
   pickjob:function(){ui.pickJob=!ui.pickJob;render()},
   help:function(){ui.help=!ui.help;render();if(ui.help)document.getElementById('main').scrollTop=0},
-  tab:function(d){srAbort();if(ui.tr)ui.tr.listening=false;if(d.v!=='chal'){if(ui.quiz&&ui.quiz.ch)ui.quiz=null;if(ui.vq&&ui.vq.ch)ui.vq=null;if(ui.ta){taStop();ui.ta=null}}ui.hub=d.v;ui.tab=d.v==='me'?(ui.msub==='words'?'words':'prog'):d.v;ui.only=null;ui.trmo=null;ui.planCur=null;ui.planBox=null;ui.lvf=null;ui.fopen=false;ui.err='';render();document.getElementById('main').scrollTop=0},
+  tab:function(d){if(ui.ruleBack){if(d.v===ui.ruleBack.hub||d.v===ui.ruleBack.tab){A.ruleback();return}ui.ruleBack=null}srAbort();if(ui.tr)ui.tr.listening=false;if(d.v!=='chal'){if(ui.quiz&&ui.quiz.ch)ui.quiz=null;if(ui.vq&&ui.vq.ch)ui.vq=null;if(ui.ta){taStop();ui.ta=null}}ui.hub=d.v;ui.tab=d.v==='me'?(ui.msub==='words'?'words':'prog'):d.v;ui.only=null;ui.trmo=null;ui.planCur=null;ui.planBox=null;ui.lvf=null;ui.fopen=false;ui.err='';render();document.getElementById('main').scrollTop=0},
   wsub:function(d){ui.wsub=ui.tab=d.v;render()},
   chgo:function(d){chStart(d.v,'daily');ui.tab='chal';render();document.getElementById('main').scrollTop=0},
   chboss:function(){bossStart();ui.tab='chal';render();document.getElementById('main').scrollTop=0},
@@ -1957,6 +1966,7 @@ var A={
 
   lsub:function(d){ui.lsub=ui.tab=d.v;render()},
   go:function(d){
+    if(d.v==='rules'&&d.f) markBack();
     var v=d.v; ui.lvf=['write','verbs','case'].indexOf(v)>-1?curLevel():null;
     if(v==='place'){startPlace()}
     else if(v==='learn'){ui.tab=ui.lsub='learn'}
@@ -1976,7 +1986,7 @@ var A={
   drnext:function(){var q=ui.dr;q.i++;q.picked=null;if(q.i>=q.qs.length){S.rp=S.rp||{};S.rp[q.k]=Math.max(S.rp[q.k]||0,q.ok);save()}render();document.getElementById('main').scrollTop=0},
   lvfx:function(){ui.lvf=null;ui.quiz=null;ui.vq=null;render()},
   rshow:function(d){ui.rshow=ui.rshow||{};ui.rshow[d.v]=true;render()},
-  vlgo:function(d){ui.dr=null;ui.vlBack=ui.tab!=='verbs'?ui.tab:null;ui.vlFocus=d&&d.v!=null&&d.v!==''?+d.v:null;if(!ui.vq)ui.vmode='learn';ui.tab='verbs';ui.vlesson=true;render();var el=document.getElementById('vlf');if(el)el.scrollIntoView({block:'start'});else document.getElementById('main').scrollTop=0},
+  vlgo:function(d){if(d&&d.v!=null&&d.v!=='')markBack();ui.dr=null;ui.vlBack=ui.tab!=='verbs'?ui.tab:null;ui.vlFocus=d&&d.v!=null&&d.v!==''?+d.v:null;if(!ui.vq)ui.vmode='learn';ui.tab='verbs';ui.vlesson=true;render();var el=document.getElementById('vlf');if(el)el.scrollIntoView({block:'start'});else document.getElementById('main').scrollTop=0},
   drx:function(){ui.dr=null;render();document.getElementById('main').scrollTop=0},
   plpick:function(d){var q=ui.pl;if(!q||q.picked!==null)return;q.picked=d.v;var c=q.qs[q.i];sfx(d.v===c.ans);if(d.v===c.ans)q.right[c.lv]=(q.right[c.lv]||0)+1;render()},
   plnext:function(){var q=ui.pl;q.i++;q.picked=null;if(q.i>=q.qs.length){S.place={lvl:placeResult(q.right),at:today()};save()}render();document.getElementById('main').scrollTop=0},
@@ -2180,7 +2190,7 @@ var A={
     q.res={ok:false,given:''}; S.verbs=S.verbs||{}; if(vCounts(c.t)) S.verbs[c.v.inf]=0; mist('verb:'+c.v.inf+'|'+c.t+'|'+c.p,false); render();
   },
   vmode:function(d){ui.vmode=d.v;render()},
-  vlesson:function(){ui.vlesson=!ui.vlesson;if(!ui.vlesson){ui.vlFocus=null;if(ui.vlBack){ui.tab=ui.vlBack;ui.vlBack=null}}render();document.getElementById('main').scrollTop=0},
+  vlesson:function(){if(ui.vlesson&&ui.ruleBack){A.ruleback();return}ui.vlesson=!ui.vlesson;if(!ui.vlesson){ui.vlFocus=null;if(ui.vlBack){ui.tab=ui.vlBack;ui.vlBack=null}}render();document.getElementById('main').scrollTop=0},
   vlstart:function(d){var vs=d.r?shuffle(vPool()).slice(0,5):vlPool().slice(0,5);if(!vs.length)return;ui.vq=null;ui.vl={vs:vs,i:0};render();document.getElementById('main').scrollTop=0},
   vlstudy:function(){var vs=ui.vq&&ui.vq.learn;if(!vs)return;ui.vq=null;ui.vl={vs:vs,i:0};render();document.getElementById('main').scrollTop=0},
   vlnext:function(){ui.vl.i++;render();document.getElementById('main').scrollTop=0},
