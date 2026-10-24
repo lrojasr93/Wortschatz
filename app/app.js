@@ -1288,7 +1288,7 @@ function vRules(){
     h+=lvHead(lv,i,ci);
     if(i>ci&&!(ui.rshow&&ui.rshow[lv])){h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV rules anyway').replace('LV',lv)+'</button>';return}
     if(lv==='A1') h+=genderRules()+rcard('gender')+rcard('vA1');
-    if(lv==='A2') h+=casesRule().replace('<details class="rule a-none"','<details id="rf-cases" class="rule a-none"')+contrRule()+rcard('contr')+pluralRule()+rcard('plural')+rcard('vA2');
+    if(lv==='A2') h+=casesRule().replace('<details class="rule a-none"','<details id="rf-cases" class="rule a-none"')+contrRule().replace('<details class="rule a-none"','<details id="rf-contr" class="rule a-none"')+rcard('contr')+pluralRule()+rcard('plural')+rcard('vA2');
     if(lv==='B1') h+=rcard('vB1');
     if(lv==='B2') h+='<p class="sub">'+tl('No new rules for B2 yet. Keep going with the conversations and stories.')+'</p>';
   });
@@ -1343,7 +1343,6 @@ function dayRec(d){S.days=S.days||{};d=d||today();return S.days[d]||(S.days[d]={
 function tick(learned){
   var x=dayRec(); x.n++; if(learned) x.l++;
   if(x.n===goal()) setTimeout(function(){toast(tl('🎉 Daily goal reached: ')+goal()+tl(' answers!'))},350);
-  touch();
   var cut=fmt(new Date(Date.now()-180*864e5));
   for(var k in S.days) if(k<cut) delete S.days[k];
   save();
@@ -1632,7 +1631,8 @@ function vProg(){
   h+='<div class="panel"><div class="goalrow">'+ring(n,g,72)+'<div><h2 style="margin:0">'+Math.min(n,g)+' / '+g+tl('</h2><p class="sub" style="margin:0">answers today · streak ')+shownStreak()+PL(shownStreak(),' day',' days',' día',' días')+'</p></div></div>';
   h+=tl('<p class="qlabel" style="margin-top:14px">Daily goal</p><div class="lvls" role="group" aria-label="Daily goal">')+GOALS.map(function(x){return '<button data-a="setgoal" data-v="'+x+'" aria-pressed="'+(g===x)+'">'+x+'</button>'}).join('')+'</div>';
   h+=tl('<p class="sub" style="margin:0">Every answer counts: cards, quizzes, sentences, verbs, conversations and stories.</p>');
-  h+=tl('<div class="sfx"><span>Sounds for right and wrong answers</span><button class="chip" data-a="sfxt" aria-pressed="')+(S.sfx!==false)+'">'+(S.sfx!==false?tl('On'):tl('Off'))+'</button></div></div>';
+  h+=tl('<div class="sfx"><span>Sounds for right and wrong answers</span><button class="chip" data-a="sfxt" aria-pressed="')+(S.sfx!==false)+'">'+(S.sfx!==false?tl('On'):tl('Off'))+'</button></div>'+
+    '<div class="sfx"><span>'+tl('Short tips before exercises')+'</span><button class="chip" data-a="tipoff" aria-pressed="'+!S.tipsOff+'">'+(!S.tipsOff?tl('On'):tl('Off'))+'</button></div></div>';
   h+='<div class="panel langp"><p class="qlabel" style="margin:0 0 8px">'+(LANG==='es'?'Idioma base · Base language':'Base language · Idioma base')+'</p><div class="seg" role="group" aria-label="Base language"><button data-a="setlang" data-v="en" aria-pressed="'+(LANG==='en')+'">English</button><button data-a="setlang" data-v="es" aria-pressed="'+(LANG==='es')+'">Español</button></div><p class="sub" style="margin:8px 0 0">'+tl('Meanings, translations, lessons and buttons use this language. Your progress stays the same.')+'</p></div>';
   var cur=curLevel(), si=startIdx();
   h+=tl('<h3 class="rt" style="margin:18px 0 4px">Your path</h3>');
@@ -1677,7 +1677,7 @@ function badge(){var b=document.getElementById('pbadge');if(!b)return;var n=mist
 function stats(){
   badge();
   var on=S.lastDay===today();
-  document.getElementById('stats').innerHTML=(ui.tab==='today'?'':'<div class="strk'+(on?' on':'')+'" title="'+(on?tl('You studied today'):tl('Answer one question today to keep your streak'))+'"><b>'+shownStreak()+'</b><span>'+tl('streak')+'</span></div>')+'<button class="help" data-a="help" aria-label="'+tl('Help')+'" aria-expanded="'+ui.help+'" aria-controls="helpbox">?</button>';
+  document.getElementById('stats').innerHTML=(ui.tab==='today'?'':'<div class="strk'+(on?' on':'')+'" title="'+(on?tl('Today’s session is done'):tl('Finish today’s session to keep your streak'))+'"><b>'+shownStreak()+'</b><span>'+tl('streak')+'</span></div>')+'<button class="help" data-a="help" aria-label="'+tl('Help')+'" aria-expanded="'+ui.help+'" aria-controls="helpbox">?</button>';
 }
 function helpHtml(){
   if(!ui.help) return '';
@@ -1716,7 +1716,7 @@ function render(){
   document.querySelectorAll('nav button').forEach(function(b){
     b.setAttribute('aria-current',b.dataset.tab===grp?'page':'false');
   });
-  stats(); unitCont(m); lvCheck();
+  stats(); unitCont(m); tipCard(m); lvCheck();
   m.querySelectorAll('.chips').forEach(function(c){var b=c.querySelector('[aria-pressed="true"]');if(b&&b.offsetLeft+b.offsetWidth>c.clientWidth+c.offsetLeft)c.scrollLeft=b.offsetLeft-c.offsetLeft-16});
   try{if(matchMedia('(pointer:fine)').matches){var inp=m.querySelector('#verb-in,#w-in,#gap-in,#tr-in,#cv-in,#wd-in');if(inp&&document.activeElement!==inp)inp.focus({preventScroll:true})}}catch(e){}
 }
@@ -1763,10 +1763,13 @@ function planSteps(){
     {k:'sent',t:say?tl('Say sentences out loud'):tl('Build sentences'),d:tl('3 sentences from your level')}
   ].map(function(x){x.done=!!P.done[x.k];if(x.done)x.skip=false;return x});
 }
+// The streak grows when today's session is finished, not with the first answer
+function planDone(){var P=planSteps();return P.some(function(x){return x.done})&&!P.some(function(x){return !x.done&&!x.skip})}
+function streakCheck(){if(S.lastDay!==today()&&planDone()){touch();save();setTimeout(function(){toast(tl('🔥 Today’s session done! Streak: N').replace('N',S.streak))},300)}}
 function planNext(){return planSteps().find(function(x){return !x.done&&!x.skip})}
 // When a step of today's session ends, mark it and offer the next one
 function planHit(keys){
-  if(ui.planCur&&keys.indexOf(ui.planCur)>-1){todayPlan().done[ui.planCur]=1;save();gc('step-'+ui.planCur,true);ui.planBox=ui.planCur;ui.planCur=null}
+  if(ui.planCur&&keys.indexOf(ui.planCur)>-1){todayPlan().done[ui.planCur]=1;save();gc('step-'+ui.planCur,true);streakCheck();ui.planBox=ui.planCur;ui.planCur=null}
   if(!ui.planBox||keys.indexOf(ui.planBox)<0) return '';
   var nx=planNext();
   return '<div class="planbox"><p><b>✓ '+tl('Step done.')+'</b> '+(nx?tl('Next: ')+esc(nx.t):tl('That was the last step for today. 🎉'))+'</p><button class="btn wide" data-a="cont">'+(nx?tl('Continue'):tl('Back to Today'))+'</button></div>';
@@ -1779,7 +1782,7 @@ function planStart(k){
   } else if(k==='opp'){
     var kind=mistKeys('mean').length+mistKeys('art').length+mistKeys('gap').length+mistKeys('prod').length+mistKeys('case').length?'words':mistKeys('tr').length?'tr':mistKeys('verb').length?'verbs':'conv';
     var t0=ui.tab; A.mrev({v:kind});
-    if(ui.tab===t0){todayPlan().done.opp=1;save();ui.planCur=null;render()}
+    if(ui.tab===t0){todayPlan().done.opp=1;save();ui.planCur=null;streakCheck();render()}
     return;
   } else {
     ui.trmo=srOk()?'say':'build';
@@ -1788,8 +1791,9 @@ function planStart(k){
   render();document.getElementById('main').scrollTop=0;
 }
 function vToday(){
+  streakCheck();
   var n=doneToday(), g=goal(), st=shownStreak(), on=S.lastDay===today(), left=Math.max(0,g-n);
-  var msg=n>=g?tl('Daily goal reached. Great work!'):on?left+tl(' more answers to reach today’s goal.'):tl('Answer one question today to keep your streak');
+  var msg=n>=g?tl('Daily goal reached. Great work!'):on?left+tl(' more answers to reach today’s goal.'):tl('Finish today’s session to keep your streak');
   var h='<div class="panel hero"><div class="streakb'+(on?' on':'')+'"><span class="fl" aria-hidden="true">🔥</span><b>'+st+'</b><span>'+PL(st,'day in a row','days in a row','día seguido','días seguidos')+'</span></div>'+
     '<div class="goalb">'+ring(n,g,64)+'<div><b>'+Math.min(n,g)+' / '+g+'</b><span>'+tl('answers today')+'</span></div></div><p class="sub hmsg">'+esc(msg)+'</p></div>';
   var P=planSteps(), nx=planNext(), any=P.some(function(x){return x.done});
@@ -1880,6 +1884,30 @@ function unitCont(m){
   b.innerHTML=t?esc(tl('Continue'))+' →<span class="exen">'+esc(tl('Next: ')+uLabel(t.it)[1])+'</span>':esc(tl('See your path'))+' →';
   var f=d.querySelector('.btn'); if(f) f.parentNode.insertBefore(b,f); else d.appendChild(b);
 }
+// A short tip above the first question: the first time for each kind of exercise, then about one session in three
+var TIPS={"art": [["-ung, -heit, -keit and -ion are always die: die Zeitung, die Freiheit.", "go", "rules", "details.rule.a-die"], ["-chen and -lein are always das: das Mädchen, das Brötchen.", "go", "rules", "details.rule.a-das"], ["Days, months and seasons are der: der Montag, der Juli, der Sommer.", "go", "rules", "details.rule.a-der"]], "case": [["Who does it → Nominativ (der). What you do something to → Akkusativ (den). To or with whom → Dativ (dem).", "go", "rules", "#rf-cases"], ["mit, bei, von, zu, aus, nach and seit always take the Dativ: mit dem Auto.", "go", "rules", "#rf-cases"], ["Movement toward a place → Akkusativ (in den Park). A location → Dativ (im Park).", "go", "rules", "#rf-cases"]], "write": [["All nouns start with a capital letter in German: der Tisch, die Zeit."], ["Type nouns with their article: der Tisch, not just Tisch."]], "verb": [["Present endings: ich -e, du -st, er -t, wir -en, ihr -t, sie -en.", "vlgo", "", ""], ["Some verbs change their vowel with du and er: ich spreche, du sprichst, er spricht.", "vlgo", "", ""], ["Perfekt: haben or sein + participle. Movement from A to B uses sein: ich bin gefahren.", "vlgo", "", ""]], "sent": [["In a statement the verb is always the second element: Heute gehe ich ins Kino."], ["With a modal verb, the second verb goes to the end: Ich kann heute nicht kommen."], ["After weil and dass, the verb goes to the end: …, weil ich müde bin."]], "dr-gender": [["-ung, -heit, -keit and -ion are always die: die Zeitung, die Freiheit."], ["-chen and -lein are always das: das Mädchen, das Brötchen."], ["Days, months and seasons are der: der Montag, der Juli, der Sommer."]], "dr-contr": [["First ask: where to, with movement (Akkusativ: ins, ans), or where, a location (Dativ: im, am)?"], ["die and plurals have no short form: in die Stadt, zu den Freunden."]], "dr-plural": [["Feminine nouns mostly add -n or -en: die Lampe → die Lampen."], ["Nouns ending in -er, -el, -chen or -lein often add nothing: der Lehrer → die Lehrer."]], "dr-vA1": [["Present endings: ich -e, du -st, er -t, wir -en, ihr -t, sie -en."], ["Some verbs change their vowel with du and er: ich spreche, du sprichst, er spricht."], ["Separable verbs send their prefix to the end: Ich stehe um sieben auf."]], "dr-vA2": [["Movement from A to B or a change of state uses sein: ich bin gefahren, ich bin aufgestanden."], ["The simple past is used mostly with sein, haben and modal verbs: ich war, ich hatte, ich konnte."]], "dr-vB1": [["Many irregular verbs follow patterns: i → a → u (trinken, trank, getrunken)."], ["Other patterns: e → a → o (sprechen, sprach, gesprochen) and ei → ie → ie (bleiben, blieb, geblieben)."]]};
+function tipObj(){
+  var t=ui.tab, q;
+  if(t==='quiz'&&(q=ui.quiz)&&q.qs&&q.qs[0]){var md=q.qs[0].mode;return [q,md==='article'?'art':md==='case'?'case':md==='write'?'write':'']}
+  if(t==='verbs'&&ui.vq&&!ui.vlesson&&!ui.vl) return [ui.vq,'verb'];
+  if(t==='translate'&&ui.tr&&ui.tr.qs) return [ui.tr,'sent'];
+  if(t==='rules'&&ui.dr) return [ui.dr,'dr-'+ui.dr.k];
+  return null;
+}
+function tipCard(m){
+  var o=tipObj(); ui.tipObj=o&&o[0]; if(!o||!TIPS[o[1]]||S.tipsOff) return;
+  var q=o[0], k=o[1], L=TIPS[k];
+  if(q._tip===undefined){
+    S.tips=S.tips||{}; var n=S.tips[k]||0; S.tips[k]=n+1; q._tip=false;
+    if(n%3===0){S.tipsI=S.tipsI||{}; var i=(S.tipsI[k]||0)%L.length; S.tipsI[k]=i+1; q._tip=i}
+    save();
+  }
+  if(q._tip===false||q.i!==0) return;
+  var x=L[q._tip], d=document.createElement('div'); d.className='tip'; d.setAttribute('role','note');
+  d.innerHTML='<span class="tipi" aria-hidden="true">💡</span><div><p>'+esc(tl(x[0]))+'</p><div class="tipr">'+(x[1]?ruleLink(x[1],x[2]||'',x[3]||''):'')+'<button class="link" data-a="tipx">'+tl('Okay, got it')+'</button></div></div>';
+  var at=m.querySelector('.prog')||m.querySelector('.qtop'); if(at) at.parentNode.insertBefore(d,at.nextSibling); else m.insertBefore(d,m.firstChild);
+}
+function tipGone(){if(ui.tipObj&&ui.tipObj._tip!==undefined)ui.tipObj._tip=false}
 function vPath(){
   var cl=curLevel(), lv=ui.pathLv||cl||'A1', U=pathUnits(lv), ci=U.findIndex(function(u){return !u.done}), nd=U.filter(function(u){return u.done}).length;
   var h='<div class="lvls" role="group" aria-label="'+tl('Level')+'">'+LV.map(function(l){return '<button data-a="plv" data-v="'+l+'" aria-pressed="'+(l===lv)+'">'+l+(levelDone(l)?' ✓':'')+'</button>'}).join('')+'</div>';
@@ -2029,6 +2057,8 @@ var A={
     render();document.getElementById('main').scrollTop=0;
     if(ui.rFocus){var el=document.querySelector(ui.rFocus);ui.rFocus=null;if(el){if(el.tagName==='DETAILS')el.open=true;el.scrollIntoView({block:'start'})}}
   },
+  tipx:function(){render()},
+  tipoff:function(){S.tipsOff=!S.tipsOff;save();render()},
   sfxt:function(){S.sfx=S.sfx===false;save();render();if(S.sfx)sfx(true)},
   setgoal:function(d){S.goal=+d.v;save();render()},
   drgo:function(d){var k=d.v||'contr';ui.dr={k:k,qs:shuffle(DRILLS[k].items).slice(0,10).map(function(c){return {q:c[0],ans:c[1],opts:shuffle([c[1]].concat(c[2])),why:c[3]}}),i:0,ok:0,picked:null};ui.tab=ui.msub='rules';render();document.getElementById('main').scrollTop=0},
@@ -2279,10 +2309,12 @@ var A={
 document.addEventListener('click',function(e){
   var t=e.target.closest('[data-a]');
   if(!t) return;
+  if(!/^(go|vlgo|vsay|ruleback|vlesson|tipoff)$/.test(t.dataset.a)) tipGone();
   var f=A[t.dataset.a];
   if(f) f(t.dataset,e);
 });
 document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&/^(tr-in|verb-in|w-in|gap-in)$/.test(e.target.id)) tipGone();
   if(e.key==='Enter'&&!e.shiftKey&&e.target.id==='tr-in'){e.preventDefault();A.trcheck();return}
   if(e.key==='Enter'&&!e.shiftKey&&e.target.id==='cv-in'){e.preventDefault();A.cvcheck();return}
   if(e.key==='Enter'&&e.target.id==='verb-in'){e.preventDefault();A.vcheck();return}
