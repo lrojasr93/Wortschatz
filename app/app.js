@@ -1212,7 +1212,7 @@ var CONTR=[['Ich bin ___ Büro.','im',['in','ins','am'],'in + dem = im. Where? �
  ['Wir treffen uns ___ Montag.','am',['im','um','an'],'Days of the week: an + dem = am.'],['Ich fahre mit dem Rad ___ Arbeit.','zur',['zum','zu','in'],'die Arbeit is feminine: zu + der = zur.'],
  ['Wie komme ich ___ Bahnhof?','zum',['zur','im','am'],'der Bahnhof is masculine: zu + dem = zum.'],['Er ist gerade ___ Arzt.','beim',['bei','zum','vom'],'bei + dem = beim.'],
  ['Ich komme gerade ___ Arzt.','vom',['von','zum','beim'],'von + dem = vom.'],['Im Sommer fahren wir ___ Meer.','ans',['am','an','ins'],'das Meer, where to? an + das = ans.'],
- ['Mein Geburtstag ist ___ Juli.','im',['am','in','um'],'Months: in + dem = im.'],['Die Kinder gehen um acht ___ Bett.','ins',['im','zum','in'],'Fixed phrase: ins Bett gehen.'],
+ ['Mein Geburtstag ist ___ Juli.','im',['am','in','um'],'Months: in + dem = im.'],['Die Kinder gehen um acht ___ Bett.','ins',['im','zum','in'],'gehen = movement into the bed, so where to? → Akkusativ: in + das = ins. In bed is im Bett (where? → Dativ).'],
  ['Wir wohnen ___ Stadtrand.','am',['an','im','ans'],'der Stadtrand, where? an + dem = am.'],['Ich gehe ___ Stadt.','in die',['in der','ins','im'],'die Stadt, where to? in + die has no short form.'],
  ['Ich bin ___ Stadt.','in der',['im','in die','ins'],'die Stadt, where? in + der has no short form.'],['___ Beispiel lerne ich jeden Tag zehn Wörter.','Zum',['Zur','Im','Am'],'Fixed phrase: zum Beispiel.'],
  ['Das Buch liegt ___ Tisch.','auf dem',['aufs','auf den','am'],'der Tisch, where? auf + dem has no short form.'],['Ich lege das Buch ___ Regal.','aufs',['auf dem','ins','am'],'das Regal, where to? auf + das = aufs (spoken; auf das is also correct).'],
@@ -1221,6 +1221,14 @@ function contrRule(){
   var T=function(rows){return '<div class="vtw"><table class="vt wrap"><tbody>'+rows.map(function(r){return '<tr><th>'+r[0]+'</th><td>→ <b>'+r[1]+'</b></td><td>'+r[2]+'</td></tr>'}).join('')+'</tbody></table></div>'};
   return '<details class="rule a-none"><summary><span>'+tl('Prepositions + article · im, am, zum')+'</span></summary><div class="rule-body">'+
     '<p class="sub" style="margin:6px 0 0">'+tl('Some prepositions merge with dem, der or das into one short word.')+'</p>'+
+    '<p class="rt">'+tl('The cases in one line')+'</p><div class="vtw"><table class="vt wrap"><tbody>'+
+      '<tr><th>Nominativ</th><td>'+tl('Who does it (the subject). Der Mann schläft.')+'</td></tr>'+
+      '<tr><th>Akkusativ</th><td>'+tl('What or whom the action goes to directly, and where to with movement. Ich sehe den Mann. Ich gehe ins Kino.')+'</td></tr>'+
+      '<tr><th>Dativ</th><td>'+tl('To or with whom, and where (a location). Ich helfe dem Mann. Ich bin im Kino.')+'</td></tr>'+
+      '<tr><th>Genitiv</th><td>'+tl('Whose. Das Auto des Mannes. Mostly written; in speech people say von dem (vom) Mann.')+'</td></tr></tbody></table></div>'+
+    '<p class="rt">'+tl('First: where to, or where?')+'</p><p class="sub" style="margin:4px 0 0">'+tl('in, an, auf, über, unter, vor, hinter, neben and zwischen take the Akkusativ when there is movement toward a place (where to?) and the Dativ for a location (where?). The case decides the article, and the article decides the short form.')+'</p>'+
+    '<div class="vtw"><table class="vt wrap"><tbody><tr><th>'+tl('Where to? → Akk')+'</th><td>Ich gehe <b>ins</b> Bett. (in + das)</td></tr><tr><th>'+tl('Where? → Dat')+'</th><td>Ich bin <b>im</b> Bett. (in + dem)</td></tr><tr><th>'+tl('Where to? → Akk')+'</th><td>Wir fahren <b>ans</b> Meer. (an + das)</td></tr><tr><th>'+tl('Where? → Dat')+'</th><td>Wir sind <b>am</b> Meer. (an + dem)</td></tr></tbody></table></div>'+
+    '<p class="sub" style="margin:4px 0 0">'+tl('Tip: verbs of movement (gehen, fahren, legen, stellen) usually mean where to. Verbs of being (sein, wohnen, liegen, stehen) mean where.')+'</p>'+
     '<p class="rt">'+tl('Dativ (where? with whom?)')+'</p>'+T([['in dem','im','im Büro, im Juli'],['an dem','am','am Montag, am Abend'],['bei dem','beim','beim Arzt, beim Essen'],['von dem','vom','vom Bahnhof'],['zu dem','zum','zum Bahnhof, zum Arzt'],['zu der','zur','zur Arbeit, zur Schule']])+
     '<p class="rt">'+tl('Akkusativ (where to?)')+'</p>'+T([['in das','ins','ins Kino, ins Bett'],['an das','ans','ans Meer, ans Fenster']])+
     '<p class="rt">'+tl('Spoken, optional in writing')+'</p>'+T([['auf das','aufs','aufs Land'],['für das','fürs','fürs Leben'],['um das','ums','ums Haus'],['über das','übers','übers Wochenende']])+
@@ -1238,7 +1246,7 @@ function vDrill(){
   h+='<p class="qn">'+tl(DRILLS[q.k].t)+' · '+(q.i+1)+tl(' of ')+q.qs.length+'</p><div class="qprompt" style="margin:6px 0 14px">'+esc(q.picked===null?c.q:c.q.replace('___',c.ans))+'</div><div class="opts">';
   c.opts.forEach(function(o){var cls='opt';if(q.picked!==null){if(o===c.ans)cls+=' ok';else if(o===q.picked)cls+=' bad'}h+='<button class="'+cls+'" data-a="drpick" data-v="'+esc(o)+'"'+(q.picked!==null?' disabled':'')+'>'+esc(o)+'</button>'});
   h+='</div>';
-  if(q.picked!==null) h+=fbk(q.picked===c.ans,c.ans)+'<p class="sub" style="margin:12px 0">'+esc(tl(c.why))+'</p><button class="btn wide" data-a="drnext">'+tl('Next')+'</button>';
+  if(q.picked!==null) h+=fbk(q.picked===c.ans,c.ans)+'<p class="sub" style="margin:12px 0">'+esc(tl(c.why))+'</p>'+(q.k==='contr'?'<div style="margin-bottom:12px">'+contrRule()+'</div>':'')+'<button class="btn wide" data-a="drnext">'+tl('Next')+'</button>';
   return h;
 }
 // Rule practices by level. Passing one (8 of 10) counts toward that level's path goal.
