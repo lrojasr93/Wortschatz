@@ -393,6 +393,8 @@ nav button[aria-current="page"]{color:var(--sk,var(--ink));box-shadow:inset 0 3p
 .chip .cn{opacity:.6;font-weight:500;margin-left:2px}
 .vpdesc{margin:-4px 0 12px;font-size:14px}
 .fbp{margin-top:16px}
+.ucont{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:10px}
+.ucont .exen{font-weight:500;opacity:.75;font-size:13px}
 .lvup{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:color-mix(in srgb,var(--bg,#000) 70%,transparent);animation:lvfade .3s ease-out}
 .lvcard{position:relative;z-index:2;max-width:380px;width:100%;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 20px 20px;box-shadow:0 20px 60px rgba(0,0,0,.35);animation:lvpop .55s cubic-bezier(.2,1.4,.4,1)}
 .lvcard h2{margin:14px 0 6px}
@@ -2994,7 +2996,7 @@ function render(){
   document.querySelectorAll('nav button').forEach(function(b){
     b.setAttribute('aria-current',b.dataset.tab===grp?'page':'false');
   });
-  stats(); lvCheck();
+  stats(); unitCont(m); lvCheck();
   m.querySelectorAll('.chips').forEach(function(c){var b=c.querySelector('[aria-pressed="true"]');if(b&&b.offsetLeft+b.offsetWidth>c.clientWidth+c.offsetLeft)c.scrollLeft=b.offsetLeft-c.offsetLeft-16});
   try{if(matchMedia('(pointer:fine)').matches){var inp=m.querySelector('#verb-in,#w-in,#gap-in,#tr-in,#cv-in,#wd-in');if(inp&&document.activeElement!==inp)inp.focus({preventScroll:true})}}catch(e){}
 }
@@ -3143,6 +3145,21 @@ function uLabel(it){
   if(it.k==='c') return ['💬',tl('Conversation')+': '+convById(it.id).t,it.done?'✓':''];
   return ['📚',tl('Story')+': '+STORIES.find(function(s){return s.id===it.id}).t,it.done?'✓':''];
 }
+// After a unit activity: the next unfinished item in the same unit, then in the next units of that level
+function unitTarget(){
+  var c=ui.uCur; if(!c) return null; var U=pathUnits(c.lv), u=U[c.u]; if(!u) return null;
+  for(var j=c.k+1;j<u.items.length;j++) if(!u.items[j].done) return {u:c.u,k:j,it:u.items[j]};
+  for(j=0;j<c.k;j++) if(!u.items[j].done) return {u:c.u,k:j,it:u.items[j]};
+  for(var x=c.u+1;x<U.length;x++) for(j=0;j<U[x].items.length;j++) if(!U[x].items[j].done) return {u:x,k:j,it:U[x].items[j]};
+  return null;
+}
+function unitCont(m){
+  if(!ui.uCur||ui.hub!=='path'||busy()||['learn','quiz','verbs','rules','conv','read'].indexOf(ui.tab)<0) return;
+  var d=m.querySelector('.done'); if(!d) return;
+  var t=unitTarget(), b=document.createElement('button'); b.className='btn wide big ucont'; b.dataset.a='unext';
+  b.innerHTML=t?esc(tl('Continue'))+' →<span class="exen">'+esc(tl('Next: ')+uLabel(t.it)[1])+'</span>':esc(tl('See your path'))+' →';
+  var f=d.querySelector('.btn'); if(f) f.parentNode.insertBefore(b,f); else d.appendChild(b);
+}
 function vPath(){
   var cl=curLevel(), lv=ui.pathLv||cl||'A1', U=pathUnits(lv), ci=U.findIndex(function(u){return !u.done}), nd=U.filter(function(u){return u.done}).length;
   var h='<div class="lvls" role="group" aria-label="'+tl('Level')+'">'+LV.map(function(l){return '<button data-a="plv" data-v="'+l+'" aria-pressed="'+(l===lv)+'">'+l+(levelDone(l)?' ✓':'')+'</button>'}).join('')+'</div>';
@@ -3185,7 +3202,7 @@ var A={
   acct:function(){ui.tab='prog';ui.msub='prog';ui.hub='me';render();var el=document.getElementById('bkp');if(el)el.scrollIntoView({block:'start'})},
   acctno:function(){S.acctNo=1;save();render()},
   fopen:function(){ui.fopen=!ui.fopen;render()},
-  onlyx:function(){ui.only=null;ui.quiz=null;ui.session=null;render()},
+  onlyx:function(){ui.uCur=null;ui.only=null;ui.quiz=null;ui.session=null;render()},
   revnow:function(){ui.only=null;ui.lvf=null;ui.cat='All';if(dueIds().length){var q=shuffle(dueIds()).slice(0,20);ui.session={queue:q,total:q.length,done:0,practice:false};ui.flipped=false;ui.tab='learn';render();document.getElementById('main').scrollTop=0}else A.mopen()},
   pgo:function(d){
     var v=d.v; ui.only=null; ui.lvf=null; ui.trmo=null;
@@ -3202,7 +3219,7 @@ var A={
   plv:function(d){ui.pathLv=d.v;ui.uOpen=null;render()},
   ugo:function(d){
     var lv=ui.pathLv||curLevel()||'A1', u=pathUnits(lv)[+d.v], it=u&&u.items[+d.k]; if(!it) return;
-    ui.lvf=null; ui.uOpen=+d.v; ui.uLv=lv;
+    ui.lvf=null; ui.uOpen=+d.v; ui.uLv=lv; ui.uCur={lv:lv,u:+d.v,k:+d.k};
     if(it.k==='w'){
       var un=it.ids.filter(function(id){return !S.progress[id]}); ui.only=it.ids;
       if(un.length){ui.session={queue:un,total:un.length,done:0,practice:false,unit:1};ui.flipped=false;ui.tab='learn'}
@@ -3215,7 +3232,12 @@ var A={
     render();document.getElementById('main').scrollTop=0;
   },
   uquiz:function(){ui.tab='quiz';ui.mode='meaning';ui.quiz=null;startQuiz();render();document.getElementById('main').scrollTop=0},
-  lgo:function(d){
+  unext:function(){
+    var c=ui.uCur, t=unitTarget(); ui.uCur=null; ui.only=null;
+    if(!t){ui.tab=ui.hub='path';render();document.getElementById('main').scrollTop=0;return}
+    ui.pathLv=c.lv; A.ugo({v:t.u,k:t.k});
+  },
+  lgo:function(d){ui.uCur=null;
     if(d.v==='vlessons'){A.vlgo({});return}
     if(d.v==='rules'){A.go({v:'rules'});return}
     if(d.v==='read'){ui.tab='read';ui.rd=null;ui.rdl=curLevel()||'A1'}
@@ -3245,7 +3267,7 @@ var A={
   setjob:function(d){S.job=d.v;save();ui.tr=null;ui.pickJob=false;ui.session=null;ui.quiz=null;ui.msg='';render()},
   pickjob:function(){ui.pickJob=!ui.pickJob;render()},
   help:function(){ui.help=!ui.help;render();if(ui.help)document.getElementById('main').scrollTop=0},
-  tab:function(d){if(ui.ruleBack){if(d.v===ui.ruleBack.hub||d.v===ui.ruleBack.tab){A.ruleback();return}ui.ruleBack=null}srAbort();if(ui.tr)ui.tr.listening=false;if(d.v!=='chal'){if(ui.quiz&&ui.quiz.ch)ui.quiz=null;if(ui.vq&&ui.vq.ch)ui.vq=null;if(ui.ta){taStop();ui.ta=null}}ui.hub=d.v;ui.tab=d.v==='me'?(ui.msub==='words'?'words':'prog'):d.v;ui.only=null;ui.trmo=null;ui.planCur=null;ui.planBox=null;ui.lvf=null;ui.fopen=false;ui.err='';render();document.getElementById('main').scrollTop=0},
+  tab:function(d){if(ui.ruleBack){if(d.v===ui.ruleBack.hub||d.v===ui.ruleBack.tab){A.ruleback();return}ui.ruleBack=null}ui.uCur=null;srAbort();if(ui.tr)ui.tr.listening=false;if(d.v!=='chal'){if(ui.quiz&&ui.quiz.ch)ui.quiz=null;if(ui.vq&&ui.vq.ch)ui.vq=null;if(ui.ta){taStop();ui.ta=null}}ui.hub=d.v;ui.tab=d.v==='me'?(ui.msub==='words'?'words':'prog'):d.v;ui.only=null;ui.trmo=null;ui.planCur=null;ui.planBox=null;ui.lvf=null;ui.fopen=false;ui.err='';render();document.getElementById('main').scrollTop=0},
   wsub:function(d){ui.wsub=ui.tab=d.v;render()},
   chgo:function(d){chStart(d.v,'daily');ui.tab='chal';render();document.getElementById('main').scrollTop=0},
   chboss:function(){bossStart();ui.tab='chal';render();document.getElementById('main').scrollTop=0},
