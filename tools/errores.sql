@@ -22,3 +22,12 @@ grant insert on public.errores to anon, authenticated;
 
 -- Los errores viejos no sirven: se borran solos a los 90 días si activas pg_cron (Database → Extensions → pg_cron).
 -- select cron.schedule('borrar-errores-viejos', '0 3 * * *', $$delete from public.errores where created_at < now() - interval '90 days'$$);
+
+-- Límite contra spam (máx. 200 errores por hora), igual que en seguridad.sql. Solo se activa si ya ejecutaste seguridad.sql.
+do $$ begin
+  if exists (select 1 from pg_proc where proname = 'limitar_envios' and pronamespace = 'public'::regnamespace) then
+    create index if not exists errores_created_at on public.errores (created_at);
+    drop trigger if exists limitar_envios on public.errores;
+    create trigger limitar_envios before insert on public.errores for each row execute function public.limitar_envios(200);
+  end if;
+end $$;
