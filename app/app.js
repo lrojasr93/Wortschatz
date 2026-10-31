@@ -946,7 +946,7 @@ function vLesson(){
     tl('<p class="warn">If the stem ends in -t or -d, add an e: du arbeit<b>est</b>, er arbeit<b>et</b>. If it ends in -s, -ß or -z, du only adds -t: du heiß<b>t</b>.</p>')+ex(tl('Ich mache, du machst, er macht.')),true);
   h+=sec(tl('2 · Stem changes (only du and er/sie/es)'),tl('<p class="sub" style="margin:6px 0 0">Many common verbs change their vowel, but only for <b>du</b> and <b>er/sie/es</b>. The endings stay the same.</p>')+
     t([['e → i','sprechen',tl('du sprichst, er spricht')],[tl('e → ie'),'sehen',tl('du siehst, er sieht')],['a → ä','fahren','du fährst, er fährt'],['au → äu','laufen','du läufst, er läuft']])+
-    '<p class="warn">Fully irregular: sein (bin, bist, ist, sind, seid, sind), haben (du hast, er hat), werden (du wirst, er wird), wissen (ich weiß, er weiß).</p>'+ex(tl('Du sprichst gut Deutsch.')));
+    '<p class="warn">'+tl('Fully irregular: sein (bin, bist, ist, sind, seid, sind), haben (du hast, er hat), werden (du wirst, er wird), wissen (ich weiß, er weiß).')+'</p>'+ex(tl('Du sprichst gut Deutsch.')));
   h+=sec(tl('3 · Separable verbs'),tl('<p class="sub" style="margin:6px 0 0">Verbs like <b>auf</b>stehen, <b>an</b>rufen or <b>ein</b>kaufen split in a sentence: the verb is in position 2 and the prefix goes to the very end.</p>')+
     ex(tl('Ich stehe um sieben Uhr auf.'))+ex(tl('Ich rufe dich morgen an.'))+tl('<p class="warn">In the perfect, ge- goes in the middle: aufgestanden, angerufen, eingekauft.</p>'));
   h+=sec(tl('4 · Modal verbs'),tl('<p class="sub" style="margin:6px 0 0">können, müssen, wollen, dürfen, sollen, mögen. ich and er/sie/es look the same and have no ending. The second verb goes to the end as an infinitive.</p>')+
@@ -983,7 +983,7 @@ function vLesson(){
     h+=lvHead(lv,i,ci);
     var fx=ss.some(function(x){return x.k===ui.vlFocus});
     if(i>ci&&!fx&&!(ui.rshow&&ui.rshow[lv])){n+=ss.length;h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV lessons anyway').replace('LV',lv)+'</button>';return}
-    ss.forEach(function(x){n++;var fo=x.k===ui.vlFocus;h+='<details class="rule a-none"'+(fo?' id="vlf"':'')+((ui.vlFocus==null?x.o&&i===ci:fo)?' open':'')+'><summary><span>'+n+' · '+x.t+'</span></summary><div class="rule-body">'+x.b+'</div></details>'});
+    ss.forEach(function(x){n++;var fo=x.k===ui.vlFocus;h+='<details class="rule a-none"'+(fo?' id="vlf"':'')+((ui.vlFocus==null?x.o&&i===ci:fo)?' open':'')+'><summary><span>'+n+' · '+x.t+'</span></summary><div class="rule-body">'+vlTr(x.b)+'<button class="btn wide" data-a="vlpr" data-v="'+x.k+'" style="margin-top:12px">'+tl('Practice this lesson')+' · 10</button></div></details>'});
     if(dk) h+=rcard(dk,true);
   });
   h+=tl('<button class="btn wide" data-a="vlesson">Back to verbs</button>');
@@ -1012,6 +1012,37 @@ function vStudy(){
   h+='<ul class="vnote">'+vNote(v).map(function(n){return '<li>'+esc(n)+'</li>'}).join('')+'</ul>';
   h+='<div class="row">'+(L.i?tl('<button class="btn ghost" data-a="vlprev">Back</button>'):'<span></span>')+(L.i+1<L.vs.length?tl('<button class="btn" data-a="vlnext">Next verb</button>'):tl('<button class="btn" data-a="vlprac">Practice these 5</button>'))+'</div>';
   return h;
+}
+// One practice per verb lesson: 10 typed forms that use exactly what that lesson explains
+var VBIG=['sein','haben','werden','wissen'];
+function lessonQs(k){
+  var low=VERBS.filter(function(v){return ['A1','A2'].indexOf(vLevel(v))>-1}), R=function(a){return a[Math.floor(Math.random()*a.length)]};
+  var plain=function(v){return VBIG.indexOf(v.inf)<0&&v.g!=='mod'}, any6=function(){return Math.floor(Math.random()*6)}, P=[0,2,3];
+  var pick=function(vs,mk){vs=shuffle(vs);var out=[];for(var i=0;out.length<10&&vs.length;i++)out.push(mk(vs[i%vs.length]));return out};
+  if(k===0) return pick(low.filter(function(v){return plain(v)&&!vSplit(v).pre&&!vIrr(v).pres.some(Boolean)}),function(v){return {v:v,t:'pres',p:any6()}});
+  if(k===1) return pick(low.filter(function(v){var x=vIrr(v).pres;return plain(v)&&!vSplit(v).pre&&(x[1]||x[2])}),function(v){var x=vIrr(v).pres;return {v:v,t:'pres',p:x[1]&&x[2]?R([1,2]):x[1]?1:2}});
+  if(k===2) return pick(VERBS.filter(function(v){return vSplit(v).pre}),function(v){return {v:v,t:'pres',p:any6()}});
+  if(k===3) return pick(VERBS.filter(function(v){return v.g==='mod'}),function(v){return {v:v,t:'pres',p:any6()}});
+  if(k===4) return pick(low.filter(function(v){return plain(v)&&!vSplit(v).pre}),function(v){return {v:v,t:'past',p:R(P)}});
+  if(k===5) return pick(low.filter(plain),function(v){return {v:v,t:'perf',p:R(P)}});
+  if(k===6) return pick(VERBS.filter(function(v){var x=vIrr(v);return plain(v)&&x.strong}),function(v){return {v:v,t:R(['past','perf']),p:R(P)}});
+  return pick(VERBS.filter(function(v){return VBIG.indexOf(v.inf)>-1||v.g==='mod'}),function(v){return {v:v,t:Math.random()<.7?'pres':'past',p:any6()}});
+}
+// Small translation after the first mention of each verb in a lesson (not inside the example sentences)
+function vlTr(html){
+  var M={},seen={};VERBS.forEach(function(v){if(v.en)M[v.inf]=String(v.en).split(/[,;(]/)[0].trim()});
+  var parts=html.split(/(<[^>]+>)/), skip=false, glued=false;
+  return parts.map(function(x){
+    if(x.charAt(0)==='<'){if(/^<p class="ex"/.test(x))skip=true;else if(/^<\/p>/.test(x))skip=false;glued=/^<\/b>/.test(x);return x}
+    if(skip) return x;
+    var g=glued; glued=false;
+    return x.replace(/[A-Za-zÄÖÜäöüß]+/g,function(w,i,str){
+      if(g&&i===0) return w;
+      var before=str.slice(0,i).trim().split(/\s+/).pop()||'';
+      if(!M[w]||seen[w]||/^(wir|ihr|sie|Sie)$/.test(before)) return w;
+      seen[w]=1; return w+'<span class="vtr">'+esc(M[w])+'</span>';
+    });
+  }).join('');
 }
 function startVlPractice(vs){
   var qs=[];
@@ -1044,6 +1075,7 @@ function vVerbs(){
     if(q.ch) return chDone(q);
     if(q.review) return doneReview(q.score,q.qs.length);
     if(q.learn) return tl('<div class="done"><h2>5 verbs studied</h2><div class="score">')+q.score+'/'+q.qs.length+'</div><p class="sub">'+q.learn.map(function(v){return v.inf}).join(', ')+tl(' are now part of your Practice rounds.</p>')+(vlPool().length?tl('<button class="btn wide" data-a="vlstart">Next 5 verbs</button>'):'')+tl('<button class="btn ghost wide" data-a="vlstudy">Study these 5 again</button><button class="btn ghost wide" data-a="vexit">Back to verbs</button></div>');
+    if(q.les!=null) return '<div class="done"><h2>'+tl('Lesson practice done')+'</h2><div class="score">'+q.score+'/'+q.qs.length+'</div><p class="sub">'+(q.score===q.qs.length?tl('Perfect run.'):q.score>=7?tl('Solid. Keep going.'):tl('Read the lesson again, then try once more.'))+'</p><button class="btn wide" data-a="vlpr" data-v="'+q.les+'">'+tl('Practice again')+'</button><button class="btn ghost wide" data-a="vlback" data-v="'+q.les+'">'+tl('Back to the lesson')+'</button></div>';
     return tl('<div class="done"><h2>Verbs done</h2><div class="score">')+q.score+'/'+q.qs.length+'</div><p class="sub">'+(q.score===q.qs.length?tl('Perfect run.'):q.score>=7?tl('Solid. Keep going.'):tl('Irregular verbs take time. Try again.'))+tl('</p><button class="btn wide" data-a="vstart">10 more</button><button class="btn ghost wide" data-a="vreset">Change settings</button></div>');
   }
   var c=q.qs[q.i], v=c.v, r=q.res, ans=vForm(v,c.t,c.p);
@@ -2271,6 +2303,8 @@ var A={
   vgroup:function(d){ui.vg=d.v;render()},
   vptype:function(d){ui.vp=d.v;if(d.v!=='all')ui.vt='perf';render()},
   vtense:function(d){ui.vt=d.v;render()},
+  vlpr:function(d){var k=+d.v,qs=lessonQs(k);if(!qs.length)return;ui.vq={qs:qs,i:0,score:0,res:null,les:k};ui.vl=null;ui.vlesson=false;ui.vlFocus=null;ui.tab='verbs';render();document.getElementById('main').scrollTop=0},
+  vlback:function(d){ui.vq=null;ui.vlesson=true;ui.vlFocus=+d.v;render();var el=document.getElementById('vlf');if(el)el.scrollIntoView({block:'start'})},
   vstart:function(){startVerbs();render()},
   vreset:function(){ui.vq=null;render()},
   vcheck:function(){
