@@ -12,10 +12,31 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Wortschatz">
-<script>addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__bip=e})</script>
-<!-- Anonymous, cookieless usage counts (GoatCounter). The app counts screens itself, so no automatic page view. -->
-<script>window.goatcounter={no_onload:true}</script>
-<script data-goatcounter="https://rumboalemania.goatcounter.com/count" async src="https://gc.zgo.at/count.js" onload="window.gcFlush&&gcFlush()"></script>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-iCVnZLyot+4dcyEaBtpWgr3b7KtoTVfJJ5R4LXbk8Y4=' 'sha256-O6JkhSR+1Qj0+baJv2HOYmmYN9az2HjtO3nP6RuRUmI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://rumboalemania.goatcounter.com; connect-src 'self' https://xyprmvlgjfdvuwjgmutu.supabase.co wss://xyprmvlgjfdvuwjgmutu.supabase.co https://rumboalemania.goatcounter.com; font-src 'self'; media-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<script>
+(function(){
+  var U="https://xyprmvlgjfdvuwjgmutu.supabase.co/rest/v1/errores",K="sb_publishable_K_Z1oV_FomxXzzc5YjbuiA_ZDvbsHvk",n=0,seen={};
+  function cut(x,m){return String(x==null?'':x).slice(0,m)}
+  function where(u){return cut(String(u||'').replace(/^https?:\/\/[^\/]+/,'').replace(/[?#].*$/,''),150)}
+  function browser(){
+    var u=navigator.userAgent||'',m=u.match(/(Edg|OPR|SamsungBrowser|Firefox|FxiOS|CriOS|Chrome|Version)\/(\d+)/);
+    var b=m?({Version:'Safari',CriOS:'Chrome',FxiOS:'Firefox',Edg:'Edge',OPR:'Opera'}[m[1]]||m[1])+' '+m[2]:'other';
+    var os=/Android/.test(u)?'Android':/iPhone|iPad|iPod/.test(u)?'iOS':/Mac OS/.test(u)?'macOS':/Windows/.test(u)?'Windows':/Linux/.test(u)?'Linux':'other';
+    var app=false;try{app=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){}
+    return b+' · '+os+(app?' · app':'');
+  }
+  function send(msg,src,stack){
+    msg=cut(msg||'unknown',500);
+    if(n>=5||seen[msg]||msg==='Script error.')return;seen[msg]=1;n++;
+    try{fetch(U,{method:'POST',keepalive:true,headers:{apikey:K,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify({mensaje:msg,fuente:src||null,pila:stack?cut(String(stack).replace(/https?:\/\/[^\/\s)]+/g,'').replace(/\?v=\w+/g,''),1000):null,
+        version:"19348a7a32",navegador:cut(browser(),60),pantalla:cut(window.wsScreen||'',40)||null})}).catch(function(){})}catch(e){}
+  }
+  addEventListener('error',function(e){if(!e||!e.message)return;send(e.message,e.filename?where(e.filename)+':'+(e.lineno||0)+':'+(e.colno||0):null,e.error&&e.error.stack)});
+  addEventListener('unhandledrejection',function(e){var r=e&&e.reason;send('Unhandled: '+(r&&r.message||r),null,r&&r.stack)});
+})();
+</script>
 <link rel="stylesheet" href="fonts.css">
 <style>
 :root{
@@ -538,6 +559,8 @@ body.onbm nav,body.onbm #stats{display:none}
       var s=document.createElement('script');s.src='app.js?v='+ix.version;document.body.appendChild(s);
     });
   }).catch(function(){document.getElementById('main').innerHTML='<div class="panel"><p class="sub">'+(lang==='es'?'No se pudo cargar el vocabulario. Revisa tu conexión y recarga la página.':'Could not load the vocabulary. Check your connection and reload.')+'</p></div>'});
+  // Keep Chrome's install prompt for the install card (tools/install-web.js), which loads later with app.js.
+  addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__bip=e});
   if('serviceWorker' in navigator) addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
 })();
 </script>
