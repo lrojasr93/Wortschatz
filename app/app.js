@@ -683,7 +683,8 @@ function chDone(q){
 // Time attack: 60 seconds of meanings. Points = 10 × combo multiplier.
 var _taTimer=null;
 function taStop(){if(_taTimer){clearInterval(_taTimer);_taTimer=null}}
-function taNextQ(){var ws=chWords('meaning',1);ui.ta.q=makeQ(ws[0],'meaning');ui.ta.picked=null}
+// Each run walks through a shuffled list, so a word only comes back once every other word has been asked
+function taNextQ(){var t=ui.ta;if(!t.queue||!t.queue.length){var last=t.q&&t.q.w;t.queue=chWords('meaning',9999).filter(function(w){return w!==last})}t.q=makeQ(t.queue.shift(),'meaning');t.picked=null}
 function taStart(){
   ui.quiz=null; ui.vq=null; ui.combo=0; ui.runXp=0;
   ui.ta={end:Date.now()+60000,pts:0,n:0,ok:0,picked:null,done:false}; taNextQ();
@@ -802,9 +803,10 @@ function vConv(){
   var it=q.items[q.i], c=it.c, t=c.turns[it.i], r=q.res;
   h+=tl('<div class="qtop"><button class="link exit" data-a="cvexit">✕ Exit</button></div><div class="prog"><i style="width:')+Math.round(q.i/q.items.length*100)+'%"></i></div>';
   h+='<p class="qn">'+c.lv+' · '+esc(c.t)+' · '+(q.i+1)+tl(' of ')+q.items.length+'</p><p class="cset">'+esc(c.set)+'</p><div class="chat">';
-  if(!q.review) q.log.forEach(function(l,k){var tt=c.turns[k];h+='<div class="bub them">'+esc(tt.p)+'</div><div class="bub me">'+esc(l.c)+'</div>'});
-  h+='<div class="bub them now"><div>'+esc(t.p)+(q.en?'<span class="en">'+esc(t.pe)+'</span>':'')+'</div><button class="icon" data-a="vsay" data-t="'+esc(t.p)+tl('" aria-label="Listen">')+ICON+'</button></div></div>';
-  if(!q.en) h+=tl('<button class="link" data-a="cven" style="font-size:14px">Show in English</button>');
+  var tr=S.cvTr!==false;
+  if(!q.review) q.log.forEach(function(l,k){var tt=c.turns[k];h+='<div class="bub them">'+esc(tt.p)+(tr&&tt.pe?'<span class="en">'+esc(tt.pe)+'</span>':'')+'</div><div class="bub me">'+esc(l.c)+'</div>'});
+  h+='<div class="bub them now"><div>'+esc(t.p)+(tr&&t.pe?'<span class="en">'+esc(t.pe)+'</span>':'')+'</div><button class="icon" data-a="vsay" data-t="'+esc(t.p)+tl('" aria-label="Listen">')+ICON+'</button></div></div>';
+  h+='<button class="link" data-a="cven" style="font-size:14px">'+(tr?tl('Hide translation'):tl('Show translation'))+'</button>';
   h+=tl('<p class="task">Your turn: ')+esc(t.task)+'</p>';
   if(!r){
     h+='<div class="hints" role="group" aria-label="Hints"><button data-a="cvhint" data-v="kw"'+(q.hint.kw?' disabled':'')+tl('>Key words</button><button data-a="cvhint" data-v="st"')+(q.hint.st?' disabled':'')+tl('>How to start</button><button data-a="cvhint" data-v="m"')+(q.hint.m?' disabled':'')+tl('>Model answer</button></div>');
@@ -1251,6 +1253,7 @@ function vDrill(){
 }
 // Rule practices by level. Passing one (8 of 10) counts toward that level's path goal.
 var DRILLS={
+ time:{lv:'A1',t:'Telling the time',extra:1,items:[["7:00 → Es ist ___ Uhr.", "sieben", ["siebzehn", "siebte", "sechs"], "Full hour: number + Uhr. Es ist sieben Uhr."], ["7:30 → Es ist ___.", "halb acht", ["halb sieben", "Viertel nach sieben", "sieben halb"], "halb points to the NEXT hour: 7:30 = halb acht."], ["8:15 → Es ist ___ acht.", "Viertel nach", ["Viertel vor", "halb", "Viertel zu"], ":15 = Viertel nach + this hour."], ["8:45 → Es ist ___ neun.", "Viertel vor", ["Viertel nach", "halb", "Viertel um"], ":45 = Viertel vor + the next hour."], ["10:10 → Es ist zehn ___ zehn.", "nach", ["vor", "halb", "um"], "Minutes after the hour: zehn nach zehn."], ["10:50 → Es ist zehn ___ elf.", "vor", ["nach", "halb", "bis"], "Minutes before the next hour: zehn vor elf."], ["Der Kurs beginnt ___ neun Uhr.", "um", ["am", "im", "an"], "At a time: um + time. Um neun Uhr."], ["___ ist es? – Es ist drei Uhr.", "Wie spät", ["Wie lang", "Was Uhr", "Wann"], "Asking the time: Wie spät ist es? or Wie viel Uhr ist es?"], ["18:00 (official) → Es ist ___ Uhr.", "achtzehn", ["sechs", "sechzehn", "acht"], "Timetables, TV and work use 24 hours: achtzehn Uhr. In conversation: sechs Uhr (abends)."], ["14:30 (official) → Es ist vierzehn Uhr ___.", "dreißig", ["halb", "fünfzehn", "drei"], "Official time says the minutes: vierzehn Uhr dreißig."], ["1:00 → Es ist ___ Uhr.", "ein", ["eins", "eine", "einer"], "Before Uhr say ein: Es ist ein Uhr. Without Uhr: Es ist eins."], ["12:30 → Es ist halb ___.", "eins", ["zwölf", "dreizehn", "ein"], "halb + the next hour: 12:30 = halb eins."], ["9:25 → Es ist fünf vor ___ zehn.", "halb", ["Viertel", "nach", "um"], "Near the half hour: 9:25 = fünf vor halb zehn (five before half ten)."], ["Wann kommst du? – ___ halb acht.", "Um", ["Am", "Im", "Zu"], "When? → um + time: um halb acht."]]},
  gender:{lv:'A1',t:'Noun gender: der, die, das',items:[['___ Zeitung','die',['der','das'],'-ung → always die.'],['___ Mädchen','das',['die','der'],'-chen → always das, even for a girl.'],['___ Lehrerin','die',['der','das'],'Female people ending in -in → die.'],['___ Montag','der',['die','das'],'Days, months and seasons → der.'],['___ Freiheit','die',['der','das'],'-heit → always die.'],['___ Dokument','das',['der','die'],'-ment → das.'],['___ Kühlschrank','der',['die','das'],'Compound: the last part decides. der Schrank → der Kühlschrank.'],['___ Universität','die',['der','das'],'-tät → die.'],['___ Essen','das',['der','die'],'Verbs used as nouns → das.'],['___ Tourismus','der',['die','das'],'-ismus → der.'],['___ Lampe','die',['der','das'],'Most nouns ending in -e → die.'],['___ Winter','der',['die','das'],'Seasons → der.'],['___ Krankenhaus','das',['der','die'],'Compound: das Haus → das Krankenhaus.'],['___ Freundschaft','die',['der','das'],'-schaft → die.'],['___ Brötchen','das',['der','die'],'-chen → das.'],['___ Information','die',['der','das'],'-ion → die.']]},
  vA1:{lv:'A1',t:'Verbs: present, separable and modal',items:[['Du ___ gut Deutsch. (sprechen)','sprichst',['sprechst','spricht','sprechen'],'e → i for du and er: du sprichst.'],['Er ___ einen Film. (sehen)','sieht',['seht','siehst','sehe'],'e → ie for du and er: er sieht.'],['Sie ___ nach Hamburg. (fahren)','fährt',['fahrt','fährst','fahren'],'a → ä for du and er/sie/es: sie fährt.'],['Ihr ___ Kaffee. (trinken)','trinkt',['trinkst','trinken','trinke'],'ihr → -t.'],['Du ___ viel. (arbeiten)','arbeitest',['arbeitst','arbeitet','arbeiten'],'The stem ends in -t, so add an e: du arbeitest.'],['Wie ___ du? (heißen)','heißt',['heißst','heißest','heiße'],'The stem ends in -ß, so du only adds -t.'],['Ich ___ um sieben Uhr auf. (aufstehen)','stehe',['aufstehe','stehst','steht'],'Separable: the verb is in position 2 and auf goes to the end.'],['Ich ___ dich morgen an. (anrufen)','rufe',['anrufe','rufst','rufen'],'Separable: rufe … an.'],['Er ___ heute nicht kommen. (können)','kann',['kannt','könnt','kannst'],'Modal verbs: ich and er have no ending. er kann.'],['Ich ___ einen Kaffee, bitte. (möchten)','möchte',['möchtet','möchten','möchtest'],'ich möchte: the polite way to say what you want.'],['Wir ___ den Bericht schreiben. (müssen)','müssen',['muss','müsst','musst'],'wir looks like the infinitive: wir müssen.'],['Du ___ hier nicht rauchen. (dürfen)','darfst',['dürfst','darf','dürft'],'Modal verbs lose the umlaut in the singular: du darfst.'],['Er ___ Lehrer. (sein)','ist',['bist','sind','seid'],'sein: ich bin, du bist, er ist.'],['Du ___ ein Auto. (haben)','hast',['habst','hat','habt'],'haben: du hast, er hat.']]},
  contr:{lv:'A2',t:'Prepositions + article: im, am, zum',items:[]},
@@ -1274,6 +1277,18 @@ function rcard(k,inLesson){
   return '<div class="story"><b>'+(ok?'<span class="tick">✓</span> ':'')+tl('Practice: ')+tl(u.t)+'</b><span class="exen">'+(b==null?tl('Not practiced yet. Pass with 8 of 10.'):tl('Best: ')+b+'/10'+(ok?tl(' · passed'):tl(' · pass with 8 of 10')))+'</span><div class="row" style="margin-top:8px">'+
     (u.lv&&VDRILL[u.lv]===k&&!inLesson?'<button class="btn ghost" data-a="vlgo">'+tl('Read the lessons')+'</button>':'')+'<button class="btn" data-a="drgo" data-v="'+k+'">'+tl('Practice')+'</button></div></div>';
 }
+function timeRule(){
+  var T=function(rows){return '<div class="vtw"><table class="vt wrap"><tbody>'+rows.map(function(r){return '<tr><th>'+r[0]+'</th><td><b>'+r[1]+'</b></td></tr>'}).join('')+'</tbody></table></div>'};
+  return '<details class="rule a-none"><summary><span>'+tl('Telling the time · Wie spät ist es?')+'</span></summary><div class="rule-body">'+
+    '<p class="rt">'+tl('Ask and answer')+'</p><div class="exs">'+exChips('Wie spät ist es?, Wie viel Uhr ist es?, Es ist drei Uhr.')+'</div>'+
+    '<p class="rt">'+tl('In conversation')+'</p>'+T([['3:00','drei Uhr'],['3:05','fünf nach drei'],['3:15','Viertel nach drei'],['3:25','fünf vor halb vier'],['3:30','halb vier'],['3:35','fünf nach halb vier'],['3:45','Viertel vor vier'],['3:50','zehn vor vier']])+
+    '<p class="warn">'+tl('halb points to the next hour: halb vier = 3:30, not 4:30.')+'</p>'+
+    '<p class="rt">'+tl('Official time (trains, TV, work): 24 hours, hour + Uhr + minutes')+'</p>'+T([['15:30','fünfzehn Uhr dreißig'],['20:45','zwanzig Uhr fünfundvierzig'],['7:05','sieben Uhr fünf']])+
+    '<p class="sub" style="margin:4px 0 0">'+tl('In conversation people use 12 hours and add morgens, nachmittags or abends: um acht Uhr abends.')+'</p>'+
+    '<p class="rt">'+tl('At what time? → um')+'</p><div class="exs">'+exChips('Wann beginnt der Film? – Um acht Uhr., Ich stehe um halb sieben auf.')+'</div>'+
+    '<p class="warn">'+tl('1:00 is ein Uhr (with Uhr) or eins (without): Es ist ein Uhr. Es ist halb eins.')+'</p>'+
+    '</div></details>';
+}
 function pluralRule(){
   return '<details class="rule a-none"><summary><span>'+tl('Plurals · die Kinder, die Häuser')+'</span></summary><div class="rule-body">'+
     '<p class="sub" style="margin:6px 0 0">'+tl('German has several plural endings. These patterns cover most nouns. In the plural the article is always die.')+'</p>'+
@@ -1287,7 +1302,7 @@ function vRules(){
   LV.forEach(function(lv,i){
     h+=lvHead(lv,i,ci);
     if(i>ci&&!(ui.rshow&&ui.rshow[lv])){h+='<button class="btn ghost wide" data-a="rshow" data-v="'+lv+'">'+tl('Show the LV rules anyway').replace('LV',lv)+'</button>';return}
-    if(lv==='A1') h+=genderRules()+rcard('gender')+rcard('vA1');
+    if(lv==='A1') h+=genderRules()+rcard('gender')+rcard('vA1')+timeRule()+rcard('time');
     if(lv==='A2') h+=casesRule().replace('<details class="rule a-none"','<details id="rf-cases" class="rule a-none"')+contrRule().replace('<details class="rule a-none"','<details id="rf-contr" class="rule a-none"')+rcard('contr')+pluralRule()+rcard('plural')+rcard('vA2');
     if(lv==='B1') h+=rcard('vB1');
     if(lv==='B2') h+='<p class="sub">'+tl('No new rules for B2 yet. Keep going with the conversations and stories.')+'</p>';
@@ -1330,6 +1345,8 @@ function sfx(ok){
     notes.forEach(function(n){var o=_ac.createOscillator(),g=_ac.createGain();o.type=ok?'sine':'triangle';o.frequency.value=n[0];g.gain.setValueAtTime(0.0001,t+n[1]);g.gain.exponentialRampToValueAtTime(ok?0.18:0.12,t+n[1]+0.02);g.gain.exponentialRampToValueAtTime(0.0001,t+n[1]+0.18);o.connect(g);g.connect(_ac.destination);o.start(t+n[1]);o.stop(t+n[1]+0.2)});
   }catch(e){}
 }
+// "Check" with nothing typed: say why nothing happened instead of staying silent
+function nudge(el){el.focus();toast(tl('Type your answer first'))}
 function toast(msg){try{var o=document.querySelector('.toast');if(o)o.remove();var d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=msg;document.body.appendChild(d);setTimeout(function(){d.remove()},2700)}catch(e){}}
 function heatmap(){
   var days=S.days||{}, start=new Date(); start.setHours(12,0,0,0); start.setDate(start.getDate()-((start.getDay()+6)%7)-7*15);
@@ -1386,7 +1403,7 @@ function pathGoals(lv){
     {t:tl('Read the ')+lv+tl(' stories'),have:st.filter(function(s){return S.read&&S.read[s.id]}).length,need:st.length,go:'read'}
   ].filter(function(x,k){return k>1||(k===0?ws.length:vs.length)});
   if(C) g.push({t:C+tl(' right answers in Cases'),have:(S.csl||{})[lv]||0,need:C,go:'case'});
-  var ru=rpUnits(lv); if(ru.length) g.push({t:tl('Pass the ')+lv+tl(' rule practices'),have:ru.filter(rpPassed).length,need:ru.length,go:'rules'});
+  var ru=rpUnits(lv).filter(function(k){return !(DRILLS[k].extra&&S.lvDone&&S.lvDone[lv])}); if(ru.length) g.push({t:tl('Pass the ')+lv+tl(' rule practices'),have:ru.filter(rpPassed).length,need:ru.length,go:'rules'});
   return g;
 }
 function levelDone(lv){return pathGoals(lv).every(function(x){return x.have>=x.need})}
@@ -1885,7 +1902,7 @@ function unitCont(m){
   var f=d.querySelector('.btn'); if(f) f.parentNode.insertBefore(b,f); else d.appendChild(b);
 }
 // A short tip above the first question: the first time for each kind of exercise, then about one session in three
-var TIPS={"art": [["-ung, -heit, -keit and -ion are always die: die Zeitung, die Freiheit.", "go", "rules", "details.rule.a-die"], ["-chen and -lein are always das: das Mädchen, das Brötchen.", "go", "rules", "details.rule.a-das"], ["Days, months and seasons are der: der Montag, der Juli, der Sommer.", "go", "rules", "details.rule.a-der"]], "case": [["Who does it → Nominativ (der). What you do something to → Akkusativ (den). To or with whom → Dativ (dem).", "go", "rules", "#rf-cases"], ["mit, bei, von, zu, aus, nach and seit always take the Dativ: mit dem Auto.", "go", "rules", "#rf-cases"], ["Movement toward a place → Akkusativ (in den Park). A location → Dativ (im Park).", "go", "rules", "#rf-cases"]], "write": [["All nouns start with a capital letter in German: der Tisch, die Zeit."], ["Type nouns with their article: der Tisch, not just Tisch."]], "verb": [["Present endings: ich -e, du -st, er -t, wir -en, ihr -t, sie -en.", "vlgo", "", ""], ["Some verbs change their vowel with du and er: ich spreche, du sprichst, er spricht.", "vlgo", "", ""], ["Perfekt: haben or sein + participle. Movement from A to B uses sein: ich bin gefahren.", "vlgo", "", ""]], "sent": [["In a statement the verb is always the second element: Heute gehe ich ins Kino."], ["With a modal verb, the second verb goes to the end: Ich kann heute nicht kommen."], ["After weil and dass, the verb goes to the end: …, weil ich müde bin."]], "dr-gender": [["-ung, -heit, -keit and -ion are always die: die Zeitung, die Freiheit."], ["-chen and -lein are always das: das Mädchen, das Brötchen."], ["Days, months and seasons are der: der Montag, der Juli, der Sommer."]], "dr-contr": [["First ask: where to, with movement (Akkusativ: ins, ans), or where, a location (Dativ: im, am)?"], ["die and plurals have no short form: in die Stadt, zu den Freunden."]], "dr-plural": [["Feminine nouns mostly add -n or -en: die Lampe → die Lampen."], ["Nouns ending in -er, -el, -chen or -lein often add nothing: der Lehrer → die Lehrer."]], "dr-vA1": [["Present endings: ich -e, du -st, er -t, wir -en, ihr -t, sie -en."], ["Some verbs change their vowel with du and er: ich spreche, du sprichst, er spricht."], ["Separable verbs send their prefix to the end: Ich stehe um sieben auf."]], "dr-vA2": [["Movement from A to B or a change of state uses sein: ich bin gefahren, ich bin aufgestanden."], ["The simple past is used mostly with sein, haben and modal verbs: ich war, ich hatte, ich konnte."]], "dr-vB1": [["Many irregular verbs follow patterns: i → a → u (trinken, trank, getrunken)."], ["Other patterns: e → a → o (sprechen, sprach, gesprochen) and ei → ie → ie (bleiben, blieb, geblieben)."]]};
+var TIPS={"dr-time":[["halb points to the next hour: halb vier = 3:30."],["At a time use um: um acht Uhr, um halb neun."]],"art": [["-ung, -heit, -keit and -ion are always die: die Zeitung, die Freiheit.", "go", "rules", "details.rule.a-die"], ["-chen and -lein are always das: das Mädchen, das Brötchen.", "go", "rules", "details.rule.a-das"], ["Days, months and seasons are der: der Montag, der Juli, der Sommer.", "go", "rules", "details.rule.a-der"]], "case": [["Who does it → Nominativ (der). What you do something to → Akkusativ (den). To or with whom → Dativ (dem).", "go", "rules", "#rf-cases"], ["mit, bei, von, zu, aus, nach and seit always take the Dativ: mit dem Auto.", "go", "rules", "#rf-cases"], ["Movement toward a place → Akkusativ (in den Park). A location → Dativ (im Park).", "go", "rules", "#rf-cases"]], "write": [["All nouns start with a capital letter in German: der Tisch, die Zeit."], ["Type nouns with their article: der Tisch, not just Tisch."]], "verb": [["Present endings: ich -e, du -st, er -t, wir -en, ihr -t, sie -en.", "vlgo", "", ""], ["Some verbs change their vowel with du and er: ich spreche, du sprichst, er spricht.", "vlgo", "", ""], ["Perfekt: haben or sein + participle. Movement from A to B uses sein: ich bin gefahren.", "vlgo", "", ""]], "sent": [["In a statement the verb is always the second element: Heute gehe ich ins Kino."], ["With a modal verb, the second verb goes to the end: Ich kann heute nicht kommen."], ["After weil and dass, the verb goes to the end: …, weil ich müde bin."]], "dr-gender": [["-ung, -heit, -keit and -ion are always die: die Zeitung, die Freiheit."], ["-chen and -lein are always das: das Mädchen, das Brötchen."], ["Days, months and seasons are der: der Montag, der Juli, der Sommer."]], "dr-contr": [["First ask: where to, with movement (Akkusativ: ins, ans), or where, a location (Dativ: im, am)?"], ["die and plurals have no short form: in die Stadt, zu den Freunden."]], "dr-plural": [["Feminine nouns mostly add -n or -en: die Lampe → die Lampen."], ["Nouns ending in -er, -el, -chen or -lein often add nothing: der Lehrer → die Lehrer."]], "dr-vA1": [["Present endings: ich -e, du -st, er -t, wir -en, ihr -t, sie -en."], ["Some verbs change their vowel with du and er: ich spreche, du sprichst, er spricht."], ["Separable verbs send their prefix to the end: Ich stehe um sieben auf."]], "dr-vA2": [["Movement from A to B or a change of state uses sein: ich bin gefahren, ich bin aufgestanden."], ["The simple past is used mostly with sein, haben and modal verbs: ich war, ich hatte, ich konnte."]], "dr-vB1": [["Many irregular verbs follow patterns: i → a → u (trinken, trank, getrunken)."], ["Other patterns: e → a → o (sprechen, sprach, gesprochen) and ei → ie → ie (bleiben, blieb, geblieben)."]]};
 function tipObj(){
   var t=ui.tab, q;
   if(t==='quiz'&&(q=ui.quiz)&&q.qs&&q.qs[0]){var md=q.qs[0].mode;return [q,md==='article'?'art':md==='case'?'case':md==='write'?'write':'']}
@@ -2032,7 +2049,7 @@ var A={
   },
   wdcheck:function(){
     var el=document.getElementById('wd-in'); if(!el) return;
-    var v=el.value.trim(); if(!v){el.focus();return}
+    var v=el.value.trim(); if(!v){nudge(el);return}
     var w=wotd(), st=wotdState(); if(st.res) return;
     var r=checkWord(v,w), cw=wotdCustom(w); st.res={ok:r.ok,given:v};
     if(cw){mist('prod:'+cw.id,r.ok);if(!r.typo)prodAns(cw.id,r.ok)} else sfx(r.ok);
@@ -2117,11 +2134,11 @@ var A={
   cvl:function(d){ui.cvl=d.v;render()},
   cvstart:function(d){startConv(d.v);render();document.getElementById('main').scrollTop=0},
   cvexit:function(){ui.planCur=null;if(ui.cv&&ui.cv.req)ui.cv.req.abort();ui.cv=null;render();document.getElementById('main').scrollTop=0},
-  cven:function(){var el=document.getElementById('cv-in');if(el)ui.cv.ans=el.value;ui.cv.en=true;render()},
+  cven:function(){var el=document.getElementById('cv-in');if(el)ui.cv.ans=el.value;S.cvTr=S.cvTr===false;save();render()},
   cvhint:function(d){var q=ui.cv,el=document.getElementById('cv-in');if(el)q.ans=el.value;q.hint[d.v]=true;render();var e2=document.getElementById('cv-in');if(e2){e2.focus();e2.setSelectionRange(e2.value.length,e2.value.length)}},
   cvcheck:function(){
     var q=ui.cv, el=document.getElementById('cv-in'); if(!q||q.res||!el) return;
-    var v=el.value.trim(); if(!v){el.focus();return}
+    var v=el.value.trim(); if(!v){nudge(el);return}
     q.ans=v;
     var it=q.items[q.i], t=it.c.turns[it.i], key='conv:'+it.c.id+'|'+it.i;
     function finish(r){
@@ -2177,7 +2194,7 @@ var A={
   },
   gcheck:function(){
     var q=ui.quiz, el=document.getElementById('gap-in'); if(!q||q.picked!==null||!el) return;
-    var v=el.value.trim(); if(!v){el.focus();return}
+    var v=el.value.trim(); if(!v){nudge(el);return}
     q.picked=v;
     var gok=norm(v)===norm(q.qs[q.i].ans);
     if(gok) q.score++;
@@ -2186,7 +2203,7 @@ var A={
   },
   wcheck:function(){
     var q=ui.quiz, el=document.getElementById('w-in'); if(!q||q.picked!==null||!el) return;
-    var v=el.value.trim(); if(!v){el.focus();return}
+    var v=el.value.trim(); if(!v){nudge(el);return}
     var cur=q.qs[q.i]; q.picked=v; q.res=checkWord(v,cur.w);
     if(q.res.ok) q.score++;
     mist('prod:'+cur.w.id,q.res.ok); if(!q.res.typo) prodAns(cur.w.id,q.res.ok); tick(); render();
@@ -2197,9 +2214,9 @@ var A={
   trhint:function(){var q=ui.tr,el=document.getElementById('tr-in');if(el)q.ans=el.value;q.hint=true;render();var e2=document.getElementById('tr-in');if(e2)e2.focus()},
   trcheck:function(){
     var q=ui.tr; if(!q||q.res) return;
-    if(trm()==='build'){if(!q.tiles||q.pick.length<q.tiles.length) return; trDone(q,q.pick.map(function(k){return q.qs[q.i].ex.split(/\s+/).filter(Boolean)[k]}).join(' ')); render(); return}
+    if(trm()==='build'){if(!q.tiles||q.pick.length<q.tiles.length){toast(tl('Use all the words first'));return} trDone(q,q.pick.map(function(k){return q.qs[q.i].ex.split(/\s+/).filter(Boolean)[k]}).join(' ')); render(); return}
     var el=document.getElementById('tr-in'); if(!el) return;
-    var v=el.value.trim(); if(!v){el.focus();return}
+    var v=el.value.trim(); if(!v){nudge(el);return}
     trDone(q,v); render();
   },
   trm:function(d){ui.trmo=null;S.trm=d.v;save();ui.trMsg='';render()},
@@ -2258,7 +2275,7 @@ var A={
   vreset:function(){ui.vq=null;render()},
   vcheck:function(){
     var q=ui.vq, el=document.getElementById('verb-in'); if(!q||q.res||!el) return;
-    var val=el.value.trim(); if(!val){el.focus();return}
+    var val=el.value.trim(); if(!val){nudge(el);return}
     var c=q.qs[q.i], ok=vnorm(val)===vnorm(vForm(c.v,c.t,c.p));
     q.res={ok:ok,given:val}; if(ok) q.score++;
     mist('verb:'+c.v.inf+'|'+c.t+'|'+c.p,ok);
