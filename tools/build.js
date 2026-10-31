@@ -105,6 +105,33 @@ const loader = `<script>
   if('serviceWorker' in navigator) addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
 })();
 </script>`;
+// Error reports: when the app breaks on someone's device, an anonymous row goes to the Supabase table `errores`
+// (insert only, see tools/errores.sql): the message, where it happened, app version, browser family and screen. No user id, at most 5 per visit.
+const errorReporter = !sbCfg.url || !sbCfg.anonKey ? '' : `<script>
+(function(){
+  var U=${JSON.stringify(sbCfg.url + '/rest/v1/errores')},K=${JSON.stringify(sbCfg.anonKey)},n=0,seen={};
+  function cut(x,m){return String(x==null?'':x).slice(0,m)}
+  function where(u){return cut(String(u||'').replace(/^https?:\\/\\/[^\\/]+/,'').replace(/[?#].*$/,''),150)}
+  function browser(){
+    var u=navigator.userAgent||'',m=u.match(/(Edg|OPR|SamsungBrowser|Firefox|FxiOS|CriOS|Chrome|Version)\\/(\\d+)/);
+    var b=m?({Version:'Safari',CriOS:'Chrome',FxiOS:'Firefox',Edg:'Edge',OPR:'Opera'}[m[1]]||m[1])+' '+m[2]:'other';
+    var os=/Android/.test(u)?'Android':/iPhone|iPad|iPod/.test(u)?'iOS':/Mac OS/.test(u)?'macOS':/Windows/.test(u)?'Windows':/Linux/.test(u)?'Linux':'other';
+    var app=false;try{app=matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}catch(e){}
+    return b+' · '+os+(app?' · app':'');
+  }
+  function send(msg,src,stack){
+    msg=cut(msg||'unknown',500);
+    if(n>=5||seen[msg]||msg==='Script error.')return;seen[msg]=1;n++;
+    try{fetch(U,{method:'POST',keepalive:true,headers:{apikey:K,'Content-Type':'application/json',Prefer:'return=minimal'},
+      body:JSON.stringify({mensaje:msg,fuente:src||null,pila:stack?cut(String(stack).replace(/https?:\\/\\/[^\\/\\s)]+/g,'').replace(/\\?v=\\w+/g,''),1000):null,
+        version:${JSON.stringify(ver)},navegador:cut(browser(),60),pantalla:cut(window.wsScreen||'',40)||null})}).catch(function(){})}catch(e){}
+  }
+  addEventListener('error',function(e){if(!e||!e.message)return;send(e.message,e.filename?where(e.filename)+':'+(e.lineno||0)+':'+(e.colno||0):null,e.error&&e.error.stack)});
+  addEventListener('unhandledrejection',function(e){var r=e&&e.reason;send('Unhandled: '+(r&&r.message||r),null,r&&r.stack)});
+})();
+</script>
+`;
+const reporterHash = errorReporter && require('crypto').createHash('sha256').update(errorReporter.slice('<script>'.length, errorReporter.lastIndexOf('</script>'))).digest('base64');
 // Content Security Policy: only our own scripts (the data loader by hash), Supabase for accounts and
 // GoatCounter for anonymous counts. GitHub Pages cannot send headers, so it goes in a <meta> tag.
 const loaderHash = require('crypto').createHash('sha256').update(loader.slice('<script>'.length, -'</script>'.length)).digest('base64');
@@ -112,7 +139,7 @@ const SB_HOST = sbCfg.url ? new URL(sbCfg.url).origin : '';
 const GC_HOST = 'https://rumboalemania.goatcounter.com';
 const csp = '<meta http-equiv="Content-Security-Policy" content="' + [
   "default-src 'self'",
-  "script-src 'self' 'sha256-" + loaderHash + "'",
+  "script-src 'self' 'sha256-" + loaderHash + "'" + (errorReporter ? " 'sha256-" + reporterHash + "'" : ''),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: " + GC_HOST,
   'connect-src ' + ["'self'", SB_HOST, SB_HOST && SB_HOST.replace(/^https/, 'wss'), GC_HOST].filter(Boolean).join(' '),
@@ -128,7 +155,7 @@ const pwaHead = `<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-title" content="Wortschatz">
 ${csp}
 <meta name="referrer" content="strict-origin-when-cross-origin">
-`;
+${errorReporter}`;
 // Fonts are self-hosted (tools/fonts) so no visitor data goes to Google.
 const gf = head.match(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>\n/);
 if (!gf) throw new Error('Google Fonts link not found');
