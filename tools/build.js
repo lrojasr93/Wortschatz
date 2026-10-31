@@ -69,6 +69,21 @@ swap("(SAMPLE?tl('Claude checks each reply and corrects it.'):tl('Your reply is 
      "(SAMPLE?tl('Claude checks each reply and corrects it.'):tl('Your reply is compared with a model answer and its key words.'))+'</p>'+(SAMPLE?'':'<p class=\"note\">'+tl('Coming soon: AI that corrects each reply.')+'</p>')");
 swap("    if(SAMPLE) h+=tl('<div class=\"story\"><b>A new story with your words</b>",
      "    if(!SAMPLE) h+='<div class=\"story\"><b>'+tl('A new story with your words')+'</b><span class=\"exen\">'+tl('Coming soon: new stories written by AI with the words you are learning.')+'</span></div>';\n    if(SAMPLE) h+=tl('<div class=\"story\"><b>A new story with your words</b>");
+// Install card (tools/install-web.js): on Hoy after two days of practice, and always in Yo. INST_PLAY = Google Play link once the app is live there.
+const INST_PLAY = '';
+swap('\nvar SB_CFG=', '\nvar INST_PLAY=' + JSON.stringify(INST_PLAY) + ';\n' + fs.readFileSync(path.join(__dirname, 'install-web.js'), 'utf8') + '\nvar SB_CFG=');
+swap("  var cl=curLevel();\n  h+='<div class=\"panel lvp\">", "  h+=instCard('today');\n  var cl=curLevel();\n  h+='<div class=\"panel lvp\">");
+swap("  h+='<p class=\"fbl\"><button class=\"link\" data-a=\"fbgo\">💬 '+tl('Send feedback')+'</button></p>';", "  h+='<p class=\"fbl\"><button class=\"link\" data-a=\"fbgo\">💬 '+tl('Send feedback')+'</button></p>';\n  h+=instCard('me');");
+Object.assign(data.es.ui, {
+  'Install Wortschatz on your phone': 'Instala Wortschatz en tu móvil',
+  'Open it from your home screen, full screen, and keep practicing without internet.': 'Ábrela desde tu pantalla de inicio, a pantalla completa, y sigue practicando sin internet.',
+  'Open this page in Safari.': 'Abre esta página en Safari.',
+  'Tap Share (the square with an arrow ⬆︎).': 'Toca Compartir (el cuadrado con una flecha ⬆︎).',
+  'Choose “Add to Home Screen”, then “Add”.': 'Elige «Añadir a pantalla de inicio» y luego «Añadir».',
+  'In Chrome, open the menu ⋮ and tap “Install app” or “Add to Home screen”.': 'En Chrome, abre el menú ⋮ y toca «Instalar aplicación» o «Añadir a pantalla de inicio».',
+  'Install': 'Instalar',
+  'Get it on Google Play': 'Descárgala en Google Play',
+});
 Object.assign(data.es.ui, {
   'Coming soon: AI that corrects each reply.': 'Próximamente: IA que corrige cada respuesta.',
   'A new story with your words': 'Una historia nueva con tus palabras',
@@ -110,6 +125,7 @@ const pwaHead = `<link rel="manifest" href="manifest.webmanifest">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Wortschatz">
+<script>addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__bip=e})</script>
 <!-- Anonymous, cookieless usage counts (GoatCounter). The app counts screens itself, so no automatic page view. -->
 <script>window.goatcounter={no_onload:true}</script>
 <script data-goatcounter="https://rumboalemania.goatcounter.com/count" async src="https://gc.zgo.at/count.js" onload="window.gcFlush&&gcFlush()"></script>
