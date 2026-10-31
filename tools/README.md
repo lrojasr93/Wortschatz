@@ -14,3 +14,9 @@ The web version keeps progress in the browser (localStorage) and, for people who
 - Sign-in is passwordless: an email with a link and a 6-digit code (the code is for the installed app on iPhone, where links open in Safari). The email templates must include `{{ .Token }}` for the code.
 - Sync is local first: every save goes to localStorage and is pushed a few seconds later; coming back to the app pulls newer progress from another device. The first sign-in on a device that already has progress asks which progress to keep.
 - The Supabase library is self-hosted in `tools/vendor/` and loaded only for people who sign in.
+
+## Security
+
+- `tools/seguridad.sql`: run once in the Supabase SQL editor after the other SQL files. Server-side dates and an hourly cap on anonymous inserts into `waitlist`, `encuesta` and `comentarios`; removes the `anon` role's access to `progress`.
+- Content Security Policy: GitHub Pages cannot send headers, so `app/index.html` (built by `build.js`, with the data loader allowed by its sha256 hash), `index.html` and `privacidad.html` carry it in a `<meta>` tag. Only our own scripts run; network access is limited to Supabase and GoatCounter. If you add an inline `<script>` to the landing, move it to a `.js` file instead or the browser blocks it.
+- Visit counts: `stats.js` (site root) sends anonymous counts straight to GoatCounter, so no third-party script runs on rumboalemania.com, where the app keeps the Supabase session. `build.js` inlines it into `app/app.js`; the landing loads it next to `landing.js`.
