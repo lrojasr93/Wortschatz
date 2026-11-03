@@ -14,3 +14,7 @@ The web version keeps progress in the browser (localStorage) and, for people who
 - Sign-in is passwordless: an email with a link and a 6-digit code (the code is for the installed app on iPhone, where links open in Safari). The email templates must include `{{ .Token }}` for the code.
 - Sync is local first: every save goes to localStorage and is pushed a few seconds later; coming back to the app pulls newer progress from another device. The first sign-in on a device that already has progress asks which progress to keep.
 - The Supabase library is self-hosted in `tools/vendor/` and loaded only for people who sign in.
+
+## English app (unlisted)
+
+`en/` (served at rumboalemania.com/en/) is Luis's personal English app, Wordhoard: the same engine with English content and a Spanish interface. It is generated from `tools/ingles-artifact.html` (a copy of the Claude artifact) by `node tools/build-en.js [path/to/wordhoard.html]`; icons come from `node tools/icons-en.js`. The page is `noindex`, linked from nowhere, has its own CSP and no accounts or analytics: progress stays in the browser (localStorage key `wordhoard-en-v1`), with export / import in Me → Progress.
