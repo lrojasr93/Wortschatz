@@ -1,6 +1,7 @@
 // Builds en/ (rumboalemania.com/en/, unlisted): the personal English app (Wordhoard) as an installable web app.
 // Source: tools/ingles-artifact.html, a copy of the Claude artifact. Run: node tools/build-en.js [path/to/wordhoard.html]
-// The page is noindex and linked from nowhere. No accounts, no analytics: progress stays in the browser.
+// The page is noindex and linked from nowhere. No analytics. Progress stays in the browser, and syncs to Supabase
+// (table progress_en) only for someone who signs in with their email.
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
 const root = path.join(__dirname, '..'), out = path.join(root, 'en');
 const srcPath = process.argv[2] || path.join(__dirname, 'ingles-artifact.html');
@@ -14,6 +15,20 @@ function rep(a, b) { if (js.indexOf(a) < 0) throw new Error('missing: ' + a.slic
 // No feedback form on the web copy (it has nowhere to send to)
 rep("h+='<p class=\"fbl\"><button class=\"link\" data-a=\"fbgo\">💬 '+tl('Send feedback')+'</button></p>';", '');
 rep("+'<div id=\"bkp\">'+vBackup()+'</div>'+vFeedback();", "+'<div id=\"bkp\">'+vBackup()+'</div>';");
+// Email sign-in and progress sync: the same Supabase project and code as Wortschatz (tools/cloud-web.js), but its own
+// table (progress_en, see tools/supabase-en.sql) and its own browser keys, so the two apps never mix their progress.
+const sbCfg = Object.assign(JSON.parse(fs.readFileSync(path.join(__dirname, 'supabase.json'), 'utf8')), { lib: '/app/vendor/supabase-2.117.2.js' });
+let cloud = fs.readFileSync(path.join(__dirname, 'cloud-web.js'), 'utf8');
+function crep(a, b) { if (cloud.indexOf(a) < 0) throw new Error('cloud-web.js missing: ' + a.slice(0, 60)); cloud = cloud.split(a).join(b); }
+crep("SB_LINK='wortschatz-cloud-user', SB_AUTH='wortschatz-auth'", "SB_LINK='wordhoard-cloud-user', SB_AUTH='wordhoard-auth'");
+crep("SB.from('progress')", "SB.from('progress_en')");
+// The account is shared with Wortschatz, so "delete" here only removes the English progress saved in it.
+crep("SB.rpc('delete_account')", "SB.from('progress_en').delete().eq('user_id',CLOUD.uid)");
+cloud += "\nObject.assign(ES,{'Delete account':'Borrar progreso de la nube','Delete your account?':'¿Borrar tu progreso de la nube?'," +
+  "'Your account and the progress saved in it are deleted for good. The progress on this device stays.':'Se borra para siempre el progreso de inglés guardado en tu cuenta. El de este dispositivo se queda y tu cuenta sigue existiendo.'," +
+  "'Account deleted.':'Progreso de la nube borrado.','The account could not be deleted. Try again later.':'No se pudo borrar. Inténtalo más tarde.'});\n";
+if (js.split('\ncloudInit();').length !== 2) throw new Error('cloudInit call not unique');
+js = js.replace('\ncloudInit();', () => '\nvar SB_CFG=' + JSON.stringify(sbCfg) + ';\n' + cloud + '\ncloudInit();');
 js += "\nif('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}\n";
 
 const hash = crypto.createHash('sha256').update(js + html.length).digest('hex').slice(0, 10);
@@ -21,7 +36,7 @@ html = html.replace(m[0], '<script src="app.js?v=' + hash + '"></script>\n</body
 html = html.replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/app/fonts.css">');
 const head = [
   '<meta name="robots" content="noindex, nofollow">',
-  '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob:; font-src \'self\'; connect-src \'self\'; media-src \'self\' blob: data:; worker-src \'self\'; manifest-src \'self\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">',
+  '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob:; font-src \'self\'; connect-src \'self\' ' + sbCfg.url + '; media-src \'self\' blob: data:; worker-src \'self\'; manifest-src \'self\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">',
   '<meta name="referrer" content="no-referrer">',
   '<link rel="manifest" href="manifest.webmanifest">',
   '<meta name="theme-color" content="#0f4c5c">',
