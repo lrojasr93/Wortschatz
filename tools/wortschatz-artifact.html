@@ -2617,6 +2617,7 @@ function fbk(ok,ans){return '<div class="fbk '+(ok?'ok':'bad')+'" role="status">
 // Short answer sounds (Web Audio, no files). Off switch in Me → Progress.
 var _ac=null;
 function sfx(ok){
+  exAns(ok);
   if(S.sfx===false) return;
   try{
     _ac=_ac||new (window.AudioContext||window.webkitAudioContext)();
@@ -3014,6 +3015,58 @@ function vFeedback(){
 var GCQ=[], _scr='';
 function gc(path,ev){var o={path:'app/'+path,title:path,event:!!ev};try{if(window.goatcounter&&goatcounter.count)goatcounter.count(o);else if(GCQ.length<30)GCQ.push(o)}catch(e){}}
 window.gcFlush=function(){try{GCQ.splice(0).forEach(function(o){goatcounter.count(o)})}catch(e){}};
+// ---- Exercise stats (anonymous, same GoatCounter): which exercises people start, finish or leave, and how well they do ----
+// Paths: ex/<kind>/start, ex/<kind>/done, ex/<kind>/score-<band>, ex/<kind>/quit-after-<answers>. Closing the app mid-exercise sends nothing, so start minus done is every exercise left unfinished.
+var EX=null;
+function exNow(){
+  var t=ui.tab,q;
+  if(ui.pl&&(t==='prog'||!S.onb)) return {k:'placement',ref:ui.pl,fin:ui.pl.i>=ui.pl.qs.length};
+  if(!S.onb) return null;
+  if(t==='chal'){
+    if(ui.ta) return {k:'chal-time',ref:ui.ta,fin:!!ui.ta.done};
+    q=ui.vq&&ui.vq.ch?ui.vq:ui.quiz&&ui.quiz.ch?ui.quiz:null;
+    return q&&{k:'chal-'+q.ch.k,ref:q,fin:q.i>=q.qs.length};
+  }
+  if(t==='quiz'&&ui.quiz){q=ui.quiz;return {k:'quiz-'+((q.qs[0]&&q.qs[0].mode)||ui.mode||'meaning'),ref:q,fin:q.i>=q.qs.length}}
+  if(t==='verbs'&&ui.vq){q=ui.vq;return {k:q.les!=null?'verbs-lesson':q.learn?'verbs-new':q.review?'verbs-review':'verbs-practice',ref:q,fin:q.i>=q.qs.length}}
+  if(t==='translate'&&ui.tr){q=ui.tr;return {k:'translate',ref:q,fin:q.i>=q.qs.length}}
+  if(t==='conv'&&ui.cv){q=ui.cv;return {k:'conversation',ref:q,fin:q.i>=q.items.length}}
+  if(t==='rules'&&ui.dr){q=ui.dr;return {k:'rule-'+q.k,ref:q,fin:q.i>=q.qs.length}}
+  if(t==='learn'&&ui.session){q=ui.session;return {k:q.practice?'cards-practice':'cards',ref:q,fin:!q.queue.length}}
+  if(t==='read'&&ui.rd){q=ui.rd;return {k:'story',ref:q,fin:Object.keys(q.picks).length>=q.qs.length}}
+  return null;
+}
+// Every answer passes through sfx(ok), so this sees all of them once
+function exAns(ok){
+  var c=exNow(); if(!c) return;
+  if(!EX||EX.ref!==c.ref){exEnd(null,true);EX={k:c.k,ref:c.ref,n:0,ok:0};gc('ex/'+c.k+'/start',1)}
+  EX.n++; if(ok) EX.ok++;
+}
+// Runs on every render: the exercise finished, or the learner went somewhere else
+function exEnd(c,force){
+  if(!EX) return;
+  var same=c&&c.ref===EX.ref;
+  if(!force&&((same&&!c.fin)||(!c&&ui.ruleBack))) return;
+  var e=EX; EX=null;
+  if(same&&c.fin){var p=e.ok/e.n;gc('ex/'+e.k+'/done',1);gc('ex/'+e.k+'/score-'+(p>=.8?'80-100':p>=.5?'50-79':'0-49'),1)}
+  else gc('ex/'+e.k+'/quit-after-'+(e.n<=2?'1-2':e.n<=5?'3-5':'6+'),1);
+}
+// ---- Coming back: one anonymous count per learner when they return 1, 7 and 30 days after their first day ----
+function retCheck(){
+  if(!S.onb) return;
+  var d, r=S.ret;
+  if(!r){
+    var ds=Object.keys(S.days||{}).sort();
+    r=S.ret={first:ds[0]||today(),sent:{}};
+    d=dnum(today())-dnum(r.first);
+    [1,7,30].forEach(function(n){if(d>=n)r.sent[n]=1}); // learners from before this count: their past returns are not counted again
+    save(); return;
+  }
+  d=dnum(today())-dnum(r.first); r.sent=r.sent||{};
+  var ch=0; [1,7,30].forEach(function(n){if(d>=n&&!r.sent[n]){r.sent[n]=1;ch=1;gc('ret/day-'+n,1)}});
+  if(ch) save();
+}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')retCheck()});
 function badge(){var b=document.getElementById('pbadge');if(!b)return;var n=mistKeys().length+dueIds().length;b.hidden=!n||!S.onb;b.textContent=n>99?'99+':n}
 function stats(){
   badge();
@@ -3050,7 +3103,7 @@ function render(){
   applySkin(); onbAuto();
   document.body.classList.toggle('onbm',!S.onb);
   var t=ui.tab;
-  var scr=S.onb?(t==='prog'||t==='words'?'me-'+t:t):'welcome-'+(ui.onb||S.onbStep||1); if(scr!==_scr){_scr=scr;gc(scr)}
+  var scr=S.onb?(t==='prog'||t==='words'?'me-'+t:t):'welcome-'+(ui.onb||S.onbStep||1); exEnd(exNow());if(scr!==_scr){_scr=scr;window.wsScreen=scr;gc(scr)}
   m.innerHTML=!S.onb?vOnb():helpHtml()+(t==='today'?vToday():t==='path'?vPath():t==='practice'?vPractice():t==='chal'?vChTab():(t==='prog'||t==='words')?vMe():
     crumb()+(t==='mist'?vMist():t==='learn'?vLearn():t==='read'?vRead():t==='quiz'?vQuiz():t==='translate'?vTrans():t==='conv'?vConv():t==='verbs'?vVerbs():t==='rules'?vRules():vToday()));
   var grp=HUBS[t]?t:(t==='prog'||t==='words')?'me':ui.hub||'today';
@@ -3280,7 +3333,7 @@ var A={
   onbgoal:function(d){S.goal=+d.v;S.onbStep=3;ui.onb=3;save();render()},
   onbjob:function(d){S.job=S.job===d.v?'':d.v;save();render()},
   onbgo:function(d){
-    gc('welcome-done-'+d.v,true);
+    gc('welcome-done-'+d.v,true);S.ret={first:today(),sent:{}};
     delete S.onbStep;ui.onb=null;ui.tab=ui.hub='today';
     // A different language than the one the page loaded with: save, reload once, then open the test there
     if(S.lang&&S.lang!==LANG){S.onbNext=d.v;save();try{cloudPush()}catch(e){}ui.onbWait=true;render();
@@ -3713,6 +3766,7 @@ document.addEventListener('input',function(e){
 
 applyLang();
 cloudInit();
+retCheck();
 render();
 })();
 </script>
