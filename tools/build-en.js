@@ -1,0 +1,82 @@
+// Builds en/ (rumboalemania.com/en/, unlisted): the personal English app (Wordhoard) as an installable web app.
+// Source: tools/ingles-artifact.html, a copy of the Claude artifact. Run: node tools/build-en.js [path/to/wordhoard.html]
+// The page is noindex and linked from nowhere. No analytics. Progress stays in the browser, and syncs to Supabase
+// (table progress_en) only for someone who signs in with their email.
+const fs = require('fs'), path = require('path'), crypto = require('crypto');
+const root = path.join(__dirname, '..'), out = path.join(root, 'en');
+const srcPath = process.argv[2] || path.join(__dirname, 'ingles-artifact.html');
+if (process.argv[2]) fs.copyFileSync(srcPath, path.join(__dirname, 'ingles-artifact.html'));
+let html = fs.readFileSync(srcPath, 'utf8');
+
+const m = html.match(/<script>\n([\s\S]*)<\/script>\s*<\/body>/);
+if (!m) throw new Error('script not found');
+let js = m[1];
+function rep(a, b) { if (js.indexOf(a) < 0) throw new Error('missing: ' + a.slice(0, 60)); js = js.split(a).join(b); }
+// No feedback form on the web copy (it has nowhere to send to)
+rep("h+='<p class=\"fbl\"><button class=\"link\" data-a=\"fbgo\">💬 '+tl('Send feedback')+'</button></p>';", '');
+rep("+'<div id=\"bkp\">'+vBackup()+'</div>'+vFeedback();", "+'<div id=\"bkp\">'+vBackup()+'</div>';");
+// Email sign-in and progress sync: the same Supabase project and code as Wortschatz (tools/cloud-web.js), but its own
+// table (progress_en, see tools/supabase-en.sql) and its own browser keys, so the two apps never mix their progress.
+const sbCfg = Object.assign(JSON.parse(fs.readFileSync(path.join(__dirname, 'supabase.json'), 'utf8')), { lib: '/app/vendor/supabase-2.117.2.js' });
+let cloud = fs.readFileSync(path.join(__dirname, 'cloud-web.js'), 'utf8');
+function crep(a, b) { if (cloud.indexOf(a) < 0) throw new Error('cloud-web.js missing: ' + a.slice(0, 60)); cloud = cloud.split(a).join(b); }
+crep("SB_LINK='wortschatz-cloud-user', SB_AUTH='wortschatz-auth'", "SB_LINK='wordhoard-cloud-user', SB_AUTH='wordhoard-auth'");
+crep("SB.from('progress')", "SB.from('progress_en')");
+// The account is shared with Wortschatz, so "delete" here only removes the English progress saved in it.
+crep("SB.rpc('delete_account')", "SB.from('progress_en').delete().eq('user_id',CLOUD.uid)");
+cloud += "\nObject.assign(ES,{'Delete account':'Borrar progreso de la nube','Delete your account?':'¿Borrar tu progreso de la nube?'," +
+  "'Your account and the progress saved in it are deleted for good. The progress on this device stays.':'Se borra para siempre el progreso de inglés guardado en tu cuenta. El de este dispositivo se queda y tu cuenta sigue existiendo.'," +
+  "'Account deleted.':'Progreso de la nube borrado.','The account could not be deleted. Try again later.':'No se pudo borrar. Inténtalo más tarde.'});\n";
+if (js.split('\ncloudInit();').length !== 2) throw new Error('cloudInit call not unique');
+js = js.replace('\ncloudInit();', () => '\nvar SB_CFG=' + JSON.stringify(sbCfg) + ';\n' + cloud + '\ncloudInit();');
+js += "\nif('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}\n";
+
+const hash = crypto.createHash('sha256').update(js + html.length).digest('hex').slice(0, 10);
+html = html.replace(m[0], '<script src="app.js?v=' + hash + '"></script>\n</body>');
+html = html.replace(/<link rel="stylesheet" href="https:\/\/fonts\.googleapis\.com[^>]*>/, '<link rel="stylesheet" href="/app/fonts.css">');
+const head = [
+  '<meta name="robots" content="noindex, nofollow">',
+  '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\' data: blob:; font-src \'self\'; connect-src \'self\' ' + sbCfg.url + '; media-src \'self\' blob: data:; worker-src \'self\'; manifest-src \'self\'; object-src \'none\'; base-uri \'none\'; form-action \'none\'">',
+  '<meta name="referrer" content="no-referrer">',
+  '<link rel="manifest" href="manifest.webmanifest">',
+  '<meta name="theme-color" content="#0f4c5c">',
+  '<link rel="icon" href="icons/icon.svg" type="image/svg+xml">',
+  '<link rel="apple-touch-icon" href="icons/icon-180.png">',
+  '<meta name="apple-mobile-web-app-capable" content="yes">',
+  '<meta name="mobile-web-app-capable" content="yes">',
+  '<meta name="apple-mobile-web-app-title" content="Wordhoard">'
+].join('\n');
+html = html.replace('<meta name="color-scheme" content="light dark">', '<meta name="color-scheme" content="light dark">\n' + head);
+if (/<script>/.test(html)) throw new Error('inline script left: blocked by the CSP');
+
+fs.mkdirSync(path.join(out, 'icons'), { recursive: true });
+fs.writeFileSync(path.join(out, 'index.html'), html);
+fs.writeFileSync(path.join(out, 'app.js'), js);
+for (const f of fs.readdirSync(path.join(__dirname, 'icons-en'))) fs.copyFileSync(path.join(__dirname, 'icons-en', f), path.join(out, 'icons', f));
+fs.writeFileSync(path.join(out, 'manifest.webmanifest'), JSON.stringify({
+  name: 'Wordhoard – inglés', short_name: 'Wordhoard', description: 'Vocabulario, verbos y gramática en inglés.',
+  id: '/en/', start_url: '/en/', scope: '/en/', display: 'standalone', orientation: 'portrait',
+  background_color: '#eef1f7', theme_color: '#0f4c5c', lang: 'es',
+  icons: [
+    { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+    { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+    { src: 'icons/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    { src: 'icons/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }
+  ]
+}, null, 1));
+const fontsCss = fs.readFileSync(path.join(root, 'app', 'fonts.css'), 'utf8');
+const fonts = [...new Set([...fontsCss.matchAll(/url\(([^)]+)\)/g)].map(x => '/app/' + x[1].replace(/['"]/g, '')))];
+const assets = ['./', 'index.html', 'app.js?v=' + hash, 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/icon-180.png', '/app/fonts.css'].concat(fonts);
+fs.writeFileSync(path.join(out, 'sw.js'), `// Generated by tools/build-en.js
+var CACHE='wordhoard-${hash}';
+var ASSETS=${JSON.stringify(assets)};
+self.addEventListener('install',function(e){e.waitUntil(caches.open(CACHE).then(function(c){return c.addAll(ASSETS)}).then(function(){return self.skipWaiting()}))});
+self.addEventListener('activate',function(e){e.waitUntil(caches.keys().then(function(ks){return Promise.all(ks.filter(function(k){return k.indexOf('wordhoard-')===0&&k!==CACHE}).map(function(k){return caches.delete(k)}))}).then(function(){return self.clients.claim()}))});
+self.addEventListener('fetch',function(e){
+  var r=e.request,u=new URL(r.url);
+  if(r.method!=='GET'||u.origin!==location.origin)return;
+  if(r.mode==='navigate'){e.respondWith(fetch(r).then(function(res){var cp=res.clone();caches.open(CACHE).then(function(c){c.put('index.html',cp)});return res}).catch(function(){return caches.match('index.html')}));return}
+  e.respondWith(caches.match(r).then(function(m){return m||fetch(r)}));
+});
+`);
+console.log('en/ built', hash, (js.length / 1024).toFixed(0) + ' KB js');
