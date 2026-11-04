@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.rumboalemania.wortschatz",
+      "sha256_cert_fingerprints": [
+        "3E:59:DF:1B:FE:59:F7:F3:F4:45:E1:52:03:D0:F1:04:28:ED:C7:5A:0C:56:B9:CE:4E:D2:7B:29:19:1D:2C:E2"
+      ]
+    }
+  }
+]
