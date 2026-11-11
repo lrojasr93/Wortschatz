@@ -342,7 +342,7 @@ function vWrite(q,cur){
     h+='<div class="bar"><input id="w-in" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="'+(w.art?tl('der / die / das + word'):tl('German word'))+tl('" aria-label="German word"><button class="btn small" data-a="wcheck">Check</button></div>');
     h+=tl('<button class="link" data-a="wskip">I don’t know</button>');
   } else {
-    h+='<div class="gres '+ac(w.art)+'"><p><b>'+(r.ok?(r.typo?tl('Correct, with a small typo. Type it exactly to count toward Mastered.'):tl('Correct!')):(q.picked?(r.note||tl('Not quite.'))+tl(' You wrote “')+esc(q.picked)+'”.':tl('Here is the answer.')))+'</b></p>'+
+    h+='<div class="gres '+ac(w.art)+'"><p><b>'+(r.ok?(r.typo?tl('Correct, with a small typo. Type it exactly to count toward Mastered.'):tl('Correct!'))+(r.alt?' '+tl('The app’s word is this one, and both are right:'):''):(q.picked?(r.note||tl('Not quite.'))+tl(' You wrote “')+esc(q.picked)+'”.':tl('Here is the answer.')))+'</b></p>'+
       '<div class="exrow" style="margin-top:4px"><p class="trs"><b>'+esc(wordKey(w))+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(wordKey(w))+tl('" aria-label="Pronounce">')+ICON+'</button></div>'+plHtml(w,'pl small')+ruleHtml(w)+(w.art&&!r.ok&&q.picked&&norm(q.picked).split(' ')[0]!==norm(w.art)?ruleLink('go','rules','details.rule.a-'+w.art):'')+'</div>';
     h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
@@ -1521,7 +1521,16 @@ function vPlace(){
 
 // ---- English → German: write the word ----
 function wordKey(w){return (w.art?w.art+' ':'')+w.de}
+// Other right answers for the same meaning: "barato" can be günstig or billig. Nouns carry their article.
+var ALT={"günstig": ["billig", "preiswert"], "Hallo": ["Guten Tag"], "Guten Tag": ["Hallo"], "Entschuldigung": ["Entschuldigen Sie", "Verzeihung"], "Auf Wiedersehen": ["Tschüss"], "Tschüss": ["Auf Wiedersehen", "Ciao"], "Guten Abend": ["Gute Nacht"], "Gute Nacht": ["Guten Abend"], "Natürlich": ["Klar", "Na klar", "Selbstverständlich"], "Zimmer": ["der Raum"], "Fahrkarte": ["das Ticket", "die Karte"], "Bus": ["der Autobus"], "Frau": ["die Ehefrau"], "schön": ["hübsch"], "Kuchen": ["die Torte"], "Hähnchen": ["das Huhn"], "Speisekarte": ["die Karte"], "Wohnung": ["das Apartment"], "Bad": ["das Badezimmer"], "Schrank": ["der Kleiderschrank"], "Auto": ["der Wagen"], "Fahrrad": ["das Rad"], "Reise": ["die Fahrt"], "Urlaub": ["die Ferien"], "Karte": ["das Ticket", "die Fahrkarte", "die Landkarte"], "Oma": ["die Großmutter"], "Opa": ["der Großvater"], "Mensch": ["die Person"], "Arzt": ["der Doktor"], "Chef": ["der Boss"], "Haar": ["die Haare"], "Pullover": ["der Pulli"], "Mütze": ["die Kappe"], "Boden": ["der Fußboden"], "Morgen": ["morgen"], "morgen": ["der Morgen"], "Abend": ["die Nacht", "der Nachmittag"], "Nacht": ["der Abend"], "oft": ["häufig"], "manchmal": ["ab und zu"], "nie": ["niemals"], "Katze": ["der Kater"], "Firma": ["das Unternehmen"], "Handy": ["das Mobiltelefon", "das Smartphone"], "E-Mail": ["die Mail"], "Besprechung": ["das Meeting", "die Sitzung"], "Universität": ["die Uni"], "Krankenhaus": ["die Klinik"], "Geschäft": ["der Laden"], "Kaffee": ["das Café"], "hören": ["zuhören"], "antworten": ["beantworten"], "beginnen": ["anfangen", "starten"], "mögen": ["gefallen"], "können": ["dürfen"], "dürfen": ["können"], "müssen": ["sollen"], "laufen": ["rennen"], "schließen": ["zumachen"], "öffnen": ["aufmachen"], "leicht": ["einfach"], "schwer": ["schwierig"], "glücklich": ["froh"], "nett": ["freundlich"], "freundlich": ["nett"], "ruhig": ["leise"], "richtig": ["korrekt"], "Junge": ["das Kind"], "Kind": ["der Junge", "das Mädchen"], "Mädchen": ["das Kind"]};
 function checkWord(v,w){
+  var r=checkWord1(v,w); if(r.ok) return r;
+  var alts=w.id&&/^b\d/.test(w.id)?ALT[w.de]||[]:[];
+  for(var i=0;i<alts.length;i++){var p=alts[i].split(' '), a=['der','die','das'].indexOf(p[0])>-1?p.shift():'', x=checkWord1(v,{art:a,de:p.join(' ')});
+    if(x.ok){x.alt=alts[i];return x} if(x.note&&!r.note) r.note=x.note}
+  return r;
+}
+function checkWord1(v,w){
   var t=toks(v).map(function(x){return x.n}), art=w.art, wd=norm(w.de);
   var given=t.join(' '), full=norm(wordKey(w));
   if(given===full) return {ok:true};
@@ -2160,7 +2169,7 @@ var A={
     var el=document.getElementById('wd-in'); if(!el) return;
     var v=el.value.trim(); if(!v){nudge(el);return}
     var w=wotd(), st=wotdState(); if(st.res) return;
-    var r=checkWord(v,w), cw=wotdCustom(w); st.res={ok:r.ok,given:v};
+    var r=checkWord(v,w), cw=wotdCustom(w); st.res={ok:r.ok,given:v,alt:r.alt};
     if(cw){mist('prod:'+cw.id,r.ok);if(!r.typo)prodAns(cw.id,r.ok)} else sfx(r.ok);
     if(r.ok){var c=CH();addXp(15);c.wotdN++;if(c.wotdN>=7)medal('wotd7')}
     tick(); render();
