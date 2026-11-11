@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Wortschatz">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-iCVnZLyot+4dcyEaBtpWgr3b7KtoTVfJJ5R4LXbk8Y4=' 'sha256-nTGbRfQVTYyMTWJ0uHIp+fWOLnjtGdv5l0cgEAfRhCI='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://rumboalemania.goatcounter.com; connect-src 'self' https://xyprmvlgjfdvuwjgmutu.supabase.co wss://xyprmvlgjfdvuwjgmutu.supabase.co https://rumboalemania.goatcounter.com; font-src 'self'; media-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-iCVnZLyot+4dcyEaBtpWgr3b7KtoTVfJJ5R4LXbk8Y4=' 'sha256-8Mhq8jILfxiJHd8suoSQpyUyRemR0aodrUsw9kRvwSU='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://rumboalemania.goatcounter.com; connect-src 'self' https://xyprmvlgjfdvuwjgmutu.supabase.co wss://xyprmvlgjfdvuwjgmutu.supabase.co https://rumboalemania.goatcounter.com; font-src 'self'; media-src 'self' blob: data:; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <script>
 (function(){
@@ -31,7 +31,7 @@
     if(n>=5||seen[msg]||msg==='Script error.')return;seen[msg]=1;n++;
     try{fetch(U,{method:'POST',keepalive:true,headers:{apikey:K,'Content-Type':'application/json',Prefer:'return=minimal'},
       body:JSON.stringify({mensaje:msg,fuente:src||null,pila:stack?cut(String(stack).replace(/https?:\/\/[^\/\s)]+/g,'').replace(/\?v=\w+/g,''),1000):null,
-        version:"6223edff99",navegador:cut(browser(),60),pantalla:cut(window.wsScreen||'',40)||null})}).catch(function(){})}catch(e){}
+        version:"7e71ebcc2a",navegador:cut(browser(),60),pantalla:cut(window.wsScreen||'',40)||null})}).catch(function(){})}catch(e){}
   }
   addEventListener('error',function(e){if(!e||!e.message)return;send(e.message,e.filename?where(e.filename)+':'+(e.lineno||0)+':'+(e.colno||0):null,e.error&&e.error.stack)});
   addEventListener('unhandledrejection',function(e){var r=e&&e.reason;send('Unhandled: '+(r&&r.message||r),null,r&&r.stack)});

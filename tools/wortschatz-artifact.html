@@ -1418,8 +1418,8 @@ function vWrite(q,cur){
     h+='<div class="bar"><input id="w-in" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="'+(w.art?tl('der / die / das + word'):tl('German word'))+tl('" aria-label="German word"><button class="btn small" data-a="wcheck">Check</button></div>');
     h+=tl('<button class="link" data-a="wskip">I don’t know</button>');
   } else {
-    h+='<div class="gres '+ac(w.art)+'"><p><b>'+(r.ok?(r.typo?tl('Correct, with a small typo. Type it exactly to count toward Mastered.'):tl('Correct!'))+(r.alt?' '+tl('The app’s word is this one, and both are right:'):''):(q.picked?(r.note||tl('Not quite.'))+tl(' You wrote “')+esc(q.picked)+'”.':tl('Here is the answer.')))+'</b></p>'+
-      '<div class="exrow" style="margin-top:4px"><p class="trs"><b>'+esc(wordKey(w))+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(wordKey(w))+tl('" aria-label="Pronounce">')+ICON+'</button></div>'+plHtml(w,'pl small')+ruleHtml(w)+(w.art&&!r.ok&&q.picked&&norm(q.picked).split(' ')[0]!==norm(w.art)?ruleLink('go','rules','details.rule.a-'+w.art):'')+'</div>';
+    h+='<div class="gres '+ac(w.art)+'"><p><b>'+(r.ok?(r.typo?tl('Correct, with a small typo. Type it exactly to count toward Mastered.'):r.syn?(LANG==='es'?'¡Correcto! «'+esc(synKey(r.syn))+'» también vale.':'Correct! “'+esc(synKey(r.syn))+'” works too.'):tl('Correct!'))+(r.alt?' '+tl('The app’s word is this one, and both are right:'):''):(q.picked?(r.note||tl('Not quite.'))+tl(' You wrote “')+esc(q.picked)+'”.':tl('Here is the answer.')))+'</b></p>'+
+      '<div class="exrow" style="margin-top:4px"><p class="trs"><b>'+esc(wordKey(w))+'</b></p><button class="icon" data-a="vsay" data-t="'+esc(wordKey(w))+tl('" aria-label="Pronounce">')+ICON+'</button></div>'+plHtml(w,'pl small')+((SYN[w.de]||[]).map(function(x){return '<p class="exen" style="margin-top:6px">'+(LANG==='es'?'También vale: <b>':'Also correct: <b>')+esc(synKey(x))+'</b>. '+esc(synNote(x))+'</p>'}).join(''))+ruleHtml(w)+(w.art&&!r.ok&&q.picked&&norm(q.picked).split(' ')[0]!==norm(w.art)?ruleLink('go','rules','details.rule.a-'+w.art):'')+'</div>';
     h+='<button class="btn wide" data-a="qnext">'+(q.i+1>=q.qs.length?tl('See score'):tl('Next question'))+'</button>';
   }
   return h;
@@ -2767,10 +2767,40 @@ function vPlace(){
 
 // ---- English → German: write the word ----
 function wordKey(w){return (w.art?w.art+' ':'')+w.de}
+// Accepted synonyms for "Write the word": German word -> [[article, synonym, nuance ES, nuance EN]]
+var SYN={
+ "günstig":[["","billig","«billig» es barato a secas y a veces suena a «de mala calidad» (billige Schuhe). «günstig» es barato en el sentido de buen precio o conveniente, con un tono más positivo (ein günstiges Angebot).","“billig” is plain cheap and can sound low-quality (billige Schuhe). “günstig” means good value or affordable, with a more positive tone (ein günstiges Angebot)."]],
+ "schön":[["","hübsch","«hübsch» es lindo o bonito, sobre todo para personas y cosas pequeñas. «schön» es más amplio: también vale para el tiempo, un día o una experiencia (schönes Wetter).","“hübsch” is pretty, mostly for people and small things. “schön” is broader: weather, a day, an experience (schönes Wetter)."]],
+ "Geschäft":[["der","Laden","«der Laden» es la tienda en lenguaje cotidiano. «das Geschäft» es un poco más formal y también significa negocio.","“der Laden” is the everyday word for shop. “das Geschäft” is a bit more formal and also means business."]],
+ "beginnen":[["","anfangen","«anfangen» es más coloquial y es separable (Der Film fängt um acht an). «beginnen» es algo más formal y no se separa.","“anfangen” is more colloquial and separable (Der Film fängt um acht an). “beginnen” is a bit more formal and not separable."]],
+ "sprechen":[["","reden","«reden» es conversar, charlar. «sprechen» es hablar en general y es el que se usa con idiomas (Ich spreche Deutsch).","“reden” is to talk or chat. “sprechen” is to speak in general and the one used for languages (Ich spreche Deutsch)."]],
+ "Auto":[["der","Wagen","«der Wagen» también es auto, algo más formal o publicitario. En el día a día se dice «das Auto».","“der Wagen” also means car, a bit more formal or advertising-like. Day to day people say “das Auto”."]],
+ "Fahrrad":[["das","Rad","«das Rad» es la forma corta y coloquial de «das Fahrrad» (también significa rueda).","“das Rad” is the short, colloquial form of “das Fahrrad” (it also means wheel)."]],
+ "Brötchen":[["die","Semmel","«die Semmel» es como se dice en Austria y el sur de Alemania. «das Brötchen» es la palabra estándar.","“die Semmel” is the word in Austria and southern Germany. “das Brötchen” is standard German."]],
+ "Kartoffel":[["der","Erdapfel","«der Erdapfel» es la palabra austriaca. «die Kartoffel» es la estándar.","“der Erdapfel” is the Austrian word. “die Kartoffel” is standard German."]],
+ "lecker":[["","köstlich","«köstlich» es delicioso, más fuerte y algo más formal. «lecker» es rico, la palabra de todos los días.","“köstlich” is delicious, stronger and a bit more formal. “lecker” is the everyday word for tasty."]]
+};
+function synKey(s){return (s[0]?s[0]+' ':'')+s[1]}
+function synNote(s){return LANG==='es'?s[2]:s[3]}
+function checkSyn(t,given,w){
+  var L=SYN[w.de]||[];
+  for(var i=0;i<L.length;i++){
+    var s=L[i], sa=s[0], sw=norm(s[1]);
+    if(given===norm(synKey(s))) return {ok:true,syn:s};
+    var hasArt=['der','die','das'].indexOf(t[0])>-1, rest=hasArt?t.slice(1).join(' '):given;
+    var wordOk=rest===sw||(sw.length>=5&&lev(rest,sw)<=1);
+    if(!wordOk) continue;
+    if(sa&&!hasArt) return {ok:false,syn:s,note:tl('Right word, but add the article.')};
+    if(sa&&t[0]!==sa) return {ok:false,syn:s,note:tl('Right word, wrong article.')};
+    return {ok:true,syn:s,typo:rest!==sw};
+  }
+  return null;
+}
 // Other right answers for the same meaning: "barato" can be günstig or billig. Nouns carry their article.
 var ALT={"günstig": ["billig", "preiswert"], "Hallo": ["Guten Tag"], "Guten Tag": ["Hallo"], "Entschuldigung": ["Entschuldigen Sie", "Verzeihung"], "Auf Wiedersehen": ["Tschüss"], "Tschüss": ["Auf Wiedersehen", "Ciao"], "Guten Abend": ["Gute Nacht"], "Gute Nacht": ["Guten Abend"], "Natürlich": ["Klar", "Na klar", "Selbstverständlich"], "Zimmer": ["der Raum"], "Fahrkarte": ["das Ticket", "die Karte"], "Bus": ["der Autobus"], "Frau": ["die Ehefrau"], "schön": ["hübsch"], "Kuchen": ["die Torte"], "Hähnchen": ["das Huhn"], "Speisekarte": ["die Karte"], "Wohnung": ["das Apartment"], "Bad": ["das Badezimmer"], "Schrank": ["der Kleiderschrank"], "Auto": ["der Wagen"], "Fahrrad": ["das Rad"], "Reise": ["die Fahrt"], "Urlaub": ["die Ferien"], "Karte": ["das Ticket", "die Fahrkarte", "die Landkarte"], "Oma": ["die Großmutter"], "Opa": ["der Großvater"], "Mensch": ["die Person"], "Arzt": ["der Doktor"], "Chef": ["der Boss"], "Haar": ["die Haare"], "Pullover": ["der Pulli"], "Mütze": ["die Kappe"], "Boden": ["der Fußboden"], "Morgen": ["morgen"], "morgen": ["der Morgen"], "Abend": ["die Nacht", "der Nachmittag"], "Nacht": ["der Abend"], "oft": ["häufig"], "manchmal": ["ab und zu"], "nie": ["niemals"], "Katze": ["der Kater"], "Firma": ["das Unternehmen"], "Handy": ["das Mobiltelefon", "das Smartphone"], "E-Mail": ["die Mail"], "Besprechung": ["das Meeting", "die Sitzung"], "Universität": ["die Uni"], "Krankenhaus": ["die Klinik"], "Geschäft": ["der Laden"], "Kaffee": ["das Café"], "hören": ["zuhören"], "antworten": ["beantworten"], "beginnen": ["anfangen", "starten"], "mögen": ["gefallen"], "können": ["dürfen"], "dürfen": ["können"], "müssen": ["sollen"], "laufen": ["rennen"], "schließen": ["zumachen"], "öffnen": ["aufmachen"], "leicht": ["einfach"], "schwer": ["schwierig"], "glücklich": ["froh"], "nett": ["freundlich"], "freundlich": ["nett"], "ruhig": ["leise"], "richtig": ["korrekt"], "Junge": ["das Kind"], "Kind": ["der Junge", "das Mädchen"], "Mädchen": ["das Kind"]};
 function checkWord(v,w){
   var r=checkWord1(v,w); if(r.ok) return r;
+  var t=toks(v).map(function(x){return x.n}), sr=checkSyn(t,t.join(' '),w); if(sr) return sr;
   var alts=w.id&&/^b\d/.test(w.id)?ALT[w.de]||[]:[];
   for(var i=0;i<alts.length;i++){var p=alts[i].split(' '), a=['der','die','das'].indexOf(p[0])>-1?p.shift():'', x=checkWord1(v,{art:a,de:p.join(' ')});
     if(x.ok){x.alt=alts[i];return x} if(x.note&&!r.note) r.note=x.note}
